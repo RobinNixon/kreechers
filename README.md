@@ -12,8 +12,4 @@ The entire program is written in HTML, CSS and JavaScript so will run on almost 
 
 If you create anything with this or develop it further, please accredit my work when you do so, thanks! And feel free to brainstorm with me at robin@robinnixon.com.
 
-<<<<<<< HEAD
 * Please note that CRITRS is not to be confused with 'Critters' by Tommaso Toffoli and Norman Margolus. The similarity of name is unfortunate, but I was unaware of their work when I started my own research in 2013.
-=======
-* Please note that CRITRS is not to be confused with 'Critters' by Tommaso Toffoli and Norman Margolus. The similarity of name is unfortunate, but I was unaware of their work when I started my own research in 2013.
->>>>>>> 386d8663d2cb228fc07f3328c9d835df7a36be94
