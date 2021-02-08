@@ -1,0 +1,237 @@
+body {
+  background        : #000;
+  color             : #fff;
+  font-family       : monospace;
+  overflow-x        : hidden;
+}
+table {
+  border            : 1px solid #48f;
+}
+hr {
+  border            : 1px dashed #567;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width             : 100%;
+  height            : 10px;
+  background        : #3ccc;
+  border-radius     : 10px;
+}
+input[type=range]::-webkit-slider-thumb {
+  margin-top        : -3px;
+  border-radius     : 50%;
+}
+input[type=range]::-moz-range-track {
+  width             : 100%;
+  background        : #ccc;
+  border-radius     : 50%;
+}
+input[type=range]::-moz-range-thumb {
+  width             : 22px;
+  height            : 22px;
+  border-radius     : 50%;
+}
+.switch {
+  cursor            : url(cursor32.png), auto;
+  position          : relative;
+  display           : inline-block;
+  width             : 48px;
+  height            : 20px;
+}
+.switch input {
+  opacity           : 0;
+  width             : 0;
+  height            : 0;
+}
+.slider {
+  cursor            : url(cursor32.png), auto;
+  position          : absolute;
+  top               : 0;
+  left              : 0;
+  right             : 0;
+  bottom            : 0;
+  background-color  : #ccc;
+  transition        : .1s;
+}
+.slider:before {
+  position          : absolute;
+  content           : "";
+  height            : 13px;
+  width             : 13px;
+  left              : 4px;
+  bottom            : 4px;
+  background-color  : white;
+  transition        : .1s;
+}
+input {
+  cursor            : url(cursor32.png), auto;
+  outline           : none;
+}
+input:checked + .slider {
+  background-color  : #29F;
+}
+input:focus + .slider {
+  box-shadow        : 0 0 1px #29F;
+}
+input:checked + .slider:before {
+  transform         : translateX(26px);
+}
+.slider.round {
+  border-radius     : 34px;
+}
+.slider.round:before {
+  border-radius     : 50%;
+}
+button {
+  cursor            : url(cursor32.png), auto;
+  background        : #006;
+  color             : #fff;
+  border-radius     : 6px;
+  box-shadow        : 2px 2px #444;
+}
+button:active {
+  transform         : translate(2px, 2px);
+  box-shadow        : 0px 0px #444;
+}
+button:focus {
+  outline           : none;
+}
+#container {
+  position          : absolute;
+}
+#canvas {
+  cursor            : url(cursor32.png), auto;
+  position          : relative;
+  display           : block;
+  border            : solid 1px #fff;
+  margin-bottom     : 20px;
+  margin-left       : auto;
+  margin-right      : auto;
+}
+#output1 {
+  cursor            : url(cursor32.png), auto;
+  position          : absolute;
+  top               : 0px;
+  left              : 10px;
+  color             : #00f;
+  margin            : 10px;
+  line-height       : 16px;
+  font-size         : 24px;
+  z-index           : 1000;
+}
+#output2 {
+  cursor            : url(cursor32.png), auto;
+  position          : absolute;
+  top               : 0px;
+  right             : 10px;
+  color             : #fff;
+  font-family       : Helvetica;
+  font-size         : 12px;
+  margin            : 5px;
+  z-index           : 1000;
+}
+.cell {
+  color             : #fff;
+}
+.about {
+  column-count      : 3;
+  column-rule       : 1px dashed #567;
+  column-gap        : 30px;
+  font-family       : Arial;
+  text-align        : justify;
+  padding           : 0px;
+  margin            : 10px;
+}
+.keys {
+  color             : #fcf;
+}
+a, a:link, a:visited, a:active {
+  color             : #8f8;
+  text-decoration   : none;
+}
+.life {
+  background        : #102;
+  border            : 1px solid;
+  float             : right;
+  margin-left       : 20px;
+  margin-bottom     : 10px;
+  font-size         : 30px;
+  break-inside      : avoid-column;
+}
+#matrix td {
+  height            : 15px;
+  text-align        : center;
+  border            : 0;
+}
+.life {
+  height            : 90px
+}
+.life td, life tr, life th{
+  text-align        : center;
+  line-height       : 30px;
+  height            : 30px;
+  width             : 30px;
+}
+.life th {
+  background        : #408;
+  color             : #8f8;
+  text-align        : center;
+  font-size         : 16px;
+}
+.lifesm {
+  background        : #102;
+  border            : 1px solid;
+  float             : right;
+  margin-left       : 20px;
+  margin-bottom     : 10px;
+  font-size         : 16px;
+  break-inside      : avoid-column;
+}
+.lifesm td, lifesm tr, lifesm th{
+  text-align        : center;
+  line-height       : 14px;
+  height            : 14px;
+  width             : 30px;
+}
+.lifesm th {
+  background        : #408;
+  color             : #8f8;
+  text-align        : center;
+  font-size         : 16px;
+}
+h1, h2, h3 {
+  color             : #40f;
+  margin-top        : 0px;
+  text-align        : left;
+}
+h4 {
+  color             : #8f8;
+}
+#editcursor {
+  position          : absolute;
+  display           : none;
+  z-index           : 1001;
+}
+[data-title]:hover:after {
+    opacity         : 1;
+    transition      : all 0.5s ease 1s;
+    visibility      : visible;
+}
+[data-title]:after {
+    width           : 150px;
+    content         : attr(data-title);
+    background-color: #428;
+    color           : #fff;
+    font-size       : 100%;
+    position        : absolute;
+    padding         : 1px 5px 2px 5px;
+    top             : -270%;
+    left            : -100%;
+    box-shadow      : 1px 1px 3px #222;
+    opacity         : 0;
+    border          : 1px solid #fff;
+    z-index         : 1001;
+    visibility      : hidden;
+}
+[data-title] {
+    position        : relative;
+}
