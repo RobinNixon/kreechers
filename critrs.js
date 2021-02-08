@@ -235,11 +235,15 @@ function mainLoop()                                                             
 
     if (CRITRTYPE == 1)
     {
-      s += "<tr><th colspan=2 style='color:#ff0'><i>Standard Rules: &nbsp; &nbsp;&nbsp; <span style='color:#9f9'>Create = 3</span> &nbsp; <span style='color:#f99'>Remove = 1, 4, 5, 6, 7, 8</span></i></th></tr>"
+      s += "<tr><th colspan=2 style='color:#ff0'><i>Standard Rules: &nbsp; "  +
+           "&nbsp;&nbsp; <span style='color:#9f9'>Create = 3</span> &nbsp; "  +
+           "<span style='color:#f99'>Remove = 1, 4, 5, 6, 7, 8</span></i>"    +
+           "</th></tr>"
 
-      s += "<tr><td><span style='color:#9f9'>Create</span> new particle if any of these numbers of neighbors" +
-           ":</td><td align=right><span style='font-size:14px'>1 &nbsp; 2 "   +
-           "&nbsp; 3 &nbsp; 4 &nbsp; 5 &nbsp; 6 &nbsp; 7 &nbsp; 8&nbsp;</span>"
+      s += "<tr><td><span style='color:#9f9'>Create</span> new particle if "  +
+           "any of these numbers of neighbors:</td><td align=right><span "    +
+           "style='font-size:14px'>1 &nbsp; 2 &nbsp; 3 &nbsp; 4 &nbsp; 5 "    +
+           "&nbsp; 6 &nbsp; 7 &nbsp; 8&nbsp;</span>"
 
       j = 1
 
@@ -251,9 +255,10 @@ function mainLoop()                                                             
 
       s += "</span></td></tr>"
 
-      s += "<tr><td><span style='color:#f99'>Remove</span> particle if any of these numbers of neighbors:"    +
-           "</td><td align=right><span style='font-size:14px'>1 &nbsp; 2 "    +
-           "&nbsp; 3 &nbsp; 4 &nbsp; 5 &nbsp; 6 &nbsp; 7 &nbsp; 8&nbsp;</span>"
+      s += "<tr><td><span style='color:#f99'>Remove</span> particle if any "  +
+           "of these numbers of neighbors:</td><td align=right><span style="  +
+           "'font-size:14px'>1 &nbsp; 2 " + "&nbsp; 3 &nbsp; 4 &nbsp; 5 "     +
+           "&nbsp; 6 &nbsp; 7 &nbsp; 8&nbsp;</span>"
 
       j = 1
 
@@ -265,11 +270,11 @@ function mainLoop()                                                             
       
       s += "<tr><td>Change Resolution &nbsp;<span class=keys><u>[</u>"        +
            "&thinsp; &hellip; &thinsp;<u>]</u></span></td><td data-title='"   +
-           "Changing to a lower resolution substantially increases the anim"  +
-           "ation frame rate - higher resolutions show much more detail, "    +
-           "but at the expense of speed' align=right><input oninput='setQres" +
-           "(parseInt(this.value))' type=range min=1 max=9 value=" + QRES     +
-           "></td></tr>"
+           "Changing to a lower resolution (to the right) substantially "     +
+           "increases the animation frame rate, while higher resolutions "    +
+           "(to the left) offer much more detail, but at the expense of "     +
+           "speed' align=right><input oninput='setQres(parseInt(this.value))" +
+           "' type=range min=1 max=9 value=" + QRES + "></td></tr>"
     }
 
     s += "</tr><tr><th colspan=2></th></tr>"
@@ -338,11 +343,11 @@ function mainLoop()                                                             
 
       s += "<tr><td>Change Resolution &nbsp;<span class=keys><u>[</u>"        +
            "&thinsp; &hellip; &thinsp;<u>]</u></span></td><td data-title='"   +
-           "Changing to a lower resolution substantially increases the anim"  +
-           "ation frame rate - higher resolutions show much more detail, "    +
-           "but at the expense of speed' align=right><input oninput='setQres" +
-           "(parseInt(this.value))' type=range min=1 max=9 value=" + QRES     +
-           "></td></tr>"
+           "Changing to a lower resolution (to the right) substantially "     +
+           "increases the animation frame rate, while higher resolutions "    +
+           "(to the left) offer much more detail, but at the expense of "     +
+           "speed' align=right><input oninput='setQres(parseInt(this.value))" +
+           "' type=range min=1 max=9 value=" + QRES + "></td></tr>"
 
       s += "<tr><td>Columns: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; "      +
            "&nbsp; &nbsp; <span class=keys><u>1</u> &hellip; <u>9</u></span>" +
@@ -938,6 +943,21 @@ function makeCode()                                                             
       x++
     }
   }
+  else if (CRITRTYPE == 1)
+  {
+    j = 0
+
+    while (j < 8)
+    {
+      c += (VLIFEB[j++    ] ? '1' : '0') + ','
+    }
+
+    while (j < 16)
+    {
+      c += (VLIFED[j++ - 8] ? '1' : '0') + ','
+    }
+  }
+  
 
   o  = RLE0.charAt(Math.floor(BWIDTH  / 64)) +                                  // The particle locations are encoded in o
        RLE0.charAt(Math.floor(BWIDTH  % 64))                                    // Store the width & height in base 64
@@ -1166,7 +1186,7 @@ function showRules()                                                            
         l2 = Math.floor(LEN2 / 2)
 
   for (y = 0, s = "<table id=matrix style='border:1px " +
-    "solid #00f;background:#004;opacity:70%'>" ; y < LEN2 ; ++y, s += '</tr>')
+    "solid #00f;background:#004;opacity:80%'>" ; y < LEN2 ; ++y, s += '</tr>')
   {
     for (x = 0, s += '<tr>' ; x < LEN1 ; ++x,
       s += "</table style='background:#008'></td>")
@@ -1382,6 +1402,16 @@ function newPreset()                                                            
   }
   else if (CRITRTYPE == 1)
   {
+    while (x < 8)
+    {
+      VLIFEB[x++ - 1] = PRESETS[PRESET][n++]
+    }
+
+    while (x < 16)
+    {
+      VLIFED[x++ - 9] = PRESETS[PRESET][n++]
+    }
+
     s = PRESETS[PRESET][n]
 
     if (s != '')
