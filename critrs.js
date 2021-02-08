@@ -1,6 +1,6 @@
                                                                                 // Critrs (c) 2021 Robin Nixon
 
-const VERSION     = "0.99j",                                                    // This version
+const VERSION     = "0.99k",                                                    // This version
       DIDCOPY     = "The following code has been copied to the clipboard. "   + // Used if copying to the keyboard buffer succeeded...
                     "Paste it into the 'presets.js' file to save the "        +
                     "current settings as a new preset.\n\n",
@@ -9,11 +9,11 @@ const VERSION     = "0.99j",                                                    
                     "the current settings as a new preset.\n\n",
       MUTATEDELAY = 15,                                                         // Delay in seconds between mutations
       FPSBUFSIZE  = 100,                                                        // Size of frame counter buffer
-      RLE0        = '0123456789abcdefghijklmnopqrstuvwxyz' +
-                              'ABCDEFGHIJKLMNOPQRSTUVWXYZ@#;',                  // Used for compressing world data
-      RLE1        = ' :£$%^&*()-_+={}[]~<>,.?/|¬'                               // for saving and loading presets
-      MAXWIDTH    = 2200,                                                       // Nicely fits an Asus ZenBook 2nd screen :)
-      MAXHEIGHT   = 640                                                         // Should also be good for most PCs though...
+      RLE0        = '0123456789abcdefghijklmnopqrstuvwxyz' +                    // Used for compressing world data
+                              'ABCDEFGHIJKLMNOPQRSTUVWXYZ@#;',                  // for saving and loading presets
+      RLE1        = ' :£$%^&*()-_+={}[]~<>,.?/|¬'                               
+      MAXWIDTH    = 2600,                                                       // Should fit most monitor widths
+      MAXHEIGHT   = 640                                                         // No need for more height than this
 
 let DIDPRESET  =                                                                // Flags that start off true
     GUIDE      =
@@ -74,8 +74,8 @@ let DIDPRESET  =                                                                
     LENY       = Math.floor(LEN2 / 2),                                          // Use for selecting the matrixes most central 2x2 section
     LENX1      = LIMIT ? LENX : 0,                                              // Only used if LIMIT is true
     LENY1      = LIMIT ? LENY : 0,
-    VLIFERULES = [3, 2, 3],
-    SMALLCTR   = SMALLCOUNT,                                                    // Counter for decidinmg when to display the guide
+    VLIFEB     = [0, 0, 1, 0, 0, 0, 0, 0],
+    VLIFED     = [1, 1, 0, 0, 1, 1, 1, 1],
     CONTEXT    = canvas.getContext('2d', { alpha: false }),                     // A context into the canvas
     CANV       = canvas                                                         // A pointer to the canvas
     CANV.rpl   = canvas.requestPointerLock || canvas.mozRequestPointerLock      // For requesting a pointer lock on the cursor
@@ -85,8 +85,8 @@ init()                                                                          
 function init()
 {
   setupCanvas()                                                                 // Ready the canvas
-  clearWorld()                                                                  // Empty WORLD
-  setQres()                                                                     // Start in the fastest mode
+  clearWorld()                                                                  // Empty the WORLD
+  setQres(4)                                                                    // Select a medium resolution
   newPreset()                                                                   // Load in the first preset from presets.js
 
   setTimeout(mainLoop, 0)                                                       // Jump to the loop at next available cycle
@@ -203,7 +203,11 @@ function mainLoop()                                                             
 
   function showInfo()                                                           // The information and control panel
   {
-    let s = ''
+    let k,
+        b = [0, 0, 0, 0, 0, 0, 0, 0],
+        d = [0, 0, 0, 0, 0, 0, 0, 0],
+        j = 1,
+        s = ''
 
     if (SHOWN)
     {
@@ -211,7 +215,7 @@ function mainLoop()                                                             
     }
 
     s += "<table style='border:1px solid #00f; margin:5px; background:#004; " +
-         "opacity:70%'><tr><td><table style='border:none' width=320>"
+         "opacity:80%'><tr><td><table style='border:none' width=320>"
 
     s += "<tr><th colspan=2 style='height:20px; background:#008; color:#8f8;" +
          "border:1px solid #008; font-size:16px; text-align:center'><b>"      +
@@ -228,10 +232,44 @@ function mainLoop()                                                             
     s += "<tr><td>Frame Rate</td><td align=right><span id=i3>&nbsp;</span>"   +
          "</td></tr>"
 
+
     if (CRITRTYPE == 1)
     {
-      s += "<tr><td>Life Rules: Neighbors =</td><td align=right><span id="    +
-           "i4>&nbsp;</span></td></tr>"
+      s += "<tr><th colspan=2 style='color:#ff0'><i>Standard Rules: &nbsp; &nbsp;&nbsp; <span style='color:#9f9'>Create = 3</span> &nbsp; <span style='color:#f99'>Remove = 1, 4, 5, 6, 7, 8</span></i></th></tr>"
+
+      s += "<tr><td><span style='color:#9f9'>Create</span> new particle if any of these numbers of neighbors" +
+           ":</td><td align=right><span style='font-size:14px'>1 &nbsp; 2 "   +
+           "&nbsp; 3 &nbsp; 4 &nbsp; 5 &nbsp; 6 &nbsp; 7 &nbsp; 8&nbsp;</span>"
+
+      j = 1
+
+      while (j < 9)
+      {
+        s += "<input type=checkbox " + (VLIFEB[j - 1] ? "checked " : "")      +
+             "onclick='VLIFEB[" + (j++ - 1) + "] ^= 1; SHOWN = false'>"
+      }
+
+      s += "</span></td></tr>"
+
+      s += "<tr><td><span style='color:#f99'>Remove</span> particle if any of these numbers of neighbors:"    +
+           "</td><td align=right><span style='font-size:14px'>1 &nbsp; 2 "    +
+           "&nbsp; 3 &nbsp; 4 &nbsp; 5 &nbsp; 6 &nbsp; 7 &nbsp; 8&nbsp;</span>"
+
+      j = 1
+
+      while (j < 9)
+      {
+        s += "<input type=checkbox " + (VLIFED[j - 1] ? "checked " : "")      +
+             "onclick='VLIFED [" + (j++ - 1) + "] ^= 1; SHOWN = false'>"
+      }
+      
+      s += "<tr><td>Change Resolution &nbsp;<span class=keys><u>[</u>"        +
+           "&thinsp; &hellip; &thinsp;<u>]</u></span></td><td data-title='"   +
+           "Changing to a lower resolution substantially increases the anim"  +
+           "ation frame rate - higher resolutions show much more detail, "    +
+           "but at the expense of speed' align=right><input oninput='setQres" +
+           "(parseInt(this.value))' type=range min=1 max=9 value=" + QRES     +
+           "></td></tr>"
     }
 
     s += "</tr><tr><th colspan=2></th></tr>"
@@ -241,13 +279,6 @@ function mainLoop()                                                             
          "<input onclick='setGuide()' type=checkbox "                         +
          (GUIDE ? "checked" : "") + "><span class='slider round'></span>"     +
          "</label></td></tr>"
-
-    s += "<tr><td>High <u>Q</u>uality Res. (<i>slower</i>)</td><td "          +
-         "data-title='High resolution gives you four times as much to see"    +
-         ", but low resolution is two to three times faster (or more)' align" +
-         "=right><label class=switch><input onclick='setQres()' type=chec"    +
-         "kbox " + (QRES == 1 ? "checked" : "") + "><span class='slider "     +
-         "round'></span></label></td></tr>"
 
     s += "<tr><td><u>T</u>oggle Color / Monochrome</td><td data-title='"      +
          "Choose between colored or monochrome particles' align=right><label" +
@@ -261,15 +292,7 @@ function mainLoop()                                                             
          " type=checkbox " + (STEP ? "checked" : "") + "><span class='slider" +
          " round'></span></label></td></tr>"
 
-    if (CRITRTYPE == 1)
-    {
-      s += "<tr><td><u>V</u>ary Rules Randomly</td><td data-title='Varying "  +
-           "the rules of Life makes for some interesting results such as fan" +
-           "tastic mosaics and spectacular crystalline growths' align=right>" +
-           "<label class=switch><input onclick='varyLife()' type=checkbox "   +
-           (VARYLIFE ? "checked" : "") + "><span class='slider round'>"       +
-           "</span></label></td></tr>"
-    }
+      s += "<tr><th colspan=2></th></tr>"
 
     if (CRITRTYPE == 0)
     {
@@ -313,13 +336,21 @@ function mainLoop()                                                             
 
       s += "<tr><th colspan=2></th></tr>"
 
+      s += "<tr><td>Change Resolution &nbsp;<span class=keys><u>[</u>"        +
+           "&thinsp; &hellip; &thinsp;<u>]</u></span></td><td data-title='"   +
+           "Changing to a lower resolution substantially increases the anim"  +
+           "ation frame rate - higher resolutions show much more detail, "    +
+           "but at the expense of speed' align=right><input oninput='setQres" +
+           "(parseInt(this.value))' type=range min=1 max=9 value=" + QRES     +
+           "></td></tr>"
+
       s += "<tr><td>Columns: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; "      +
-           "&nbsp; &nbsp; <span class=keys><u>1</u>&hellip;<u>9</u></span>"   +
+           "&nbsp; &nbsp; <span class=keys><u>1</u> &hellip; <u>9</u></span>" +
            "</td><td align=right><input oninput='LEN1=parseInt(this.value); " +
            "setRules()' type=range min=1 max=9 value=" + LEN1 + "></td></tr>"
 
-      s += "<tr><td>Rows: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; "  +
-           "<span class=keys><u>Shift</u><u>1</u>&hellip;<u>9</u></span>"     +
+      s += "<tr><td>Rows: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;"   +
+           "<span class=keys><u>Shift</u>-<u>1</u> &hellip; <u>9</u></span>"  +
            "</td><td align=right><input oninput='LEN2=parseInt(this.value); " +
            "setRules()' type=range min=1 max=9 value=" + LEN2 + "></td></tr>"
 
@@ -355,7 +386,7 @@ function mainLoop()                                                             
          "particles in the current view' onclick='randomLine()' style='width" +
          ":100%'>Random <u>L</u>ine</button></td>"
 
-    if (CRITRTYPE == 0 || VARYLIFE)
+    if (CRITRTYPE == 0)
     {
       s += "<td align=middle><button data-title='Creates a new random set "   +
            "of rules for this matrix configuration - Tips: Draw with the "    +
@@ -366,10 +397,11 @@ function mainLoop()                                                             
     }
     else
     {
-      s += "<td align=middle><button data-title='Draws a random open "        +
-           "triangle of particles in the current view' onclick='random"       +
-           "Triangle()' style='width:100%'><u>R</u>andom Open Triangle"       +
-           "</button></td></tr>"
+      s += "<td align=middle><button data-title='Creates a new random set "   +
+           "of rules for the Game of Life - Tips: Draw with the mouse or "    +
+           "add lines &amp; rectangles for interesting results - or use the " +
+           "checkboxes above to modify them yourself' onclick='setRules()' "  +
+           "style='width:100%'><u>N</u>ew Random Ruleset</button></td></tr>"
     }
 
     s += "<tr><td align=middle><button data-title='Draws a random open "      +
@@ -429,7 +461,7 @@ function updateWorld()                                                          
 
 function updateLife()                                                           // Conway's Game of Life
 {
-  let y, m, n, t,
+  let j, y, m, n, t,
       x = 0
 
   while (x < BWIDTH)                                                            // For these large arrays 'while' has tested a few
@@ -449,11 +481,11 @@ function updateLife()                                                           
           (WORLD[wrapX(x + 1)][wrapY(y + 1)] ? 1 : 0)
       m = WORLD[x][y]                                                           // Is the current cell occupied?
 
-      if (m && (n >= VLIFERULES[1] && n <= VLIFERULES[2]))                      // VLIFERULES can be modified to make variations
+      if      ( m && !VLIFED[n - 1])
       {                                                                         // If not in these bounds a particle 'dies'
-        WORLD2[x][y] = m + .1                                    // A small value to cycle colors slower
+        WORLD2[x][y] = m + .1                                                   // A small value to cycle colors slower
       }
-      else if (!m && (n == VLIFERULES[0]))                                      // The cell is unoccupied and...
+      else if (!m &&  VLIFEB[n - 1])                                            // The cell is unoccupied and...
       {
         WORLD2[x][y] = 1                                                        // There are the correct number of neighbors
       }                                                                         // so a new particle is 'born'
@@ -581,7 +613,7 @@ function drawWorld()
 
   CONTEXT.fillStyle = '#102'                                                    // World bacground color
 
-  if (GUIDE)                                                                    // Clear the canvas around the guide
+    if (GUIDE)                                                                    // Clear the canvas around the guide
   {
     CONTEXT.fillRect(0, 0, wq, bh * QRES - 3)
     CONTEXT.fillRect(wq / 5 + 3, hq *.8 - 3, bw * QRES, hq / 5 + 3)
@@ -606,10 +638,7 @@ function drawWorld()
           CONTEXT.fillStyle = c = MONO ? COLORS[1] : COLORS[w % 256]            // Change color, but only if different to last time
         }
 
-        if (!(GUIDE && (x * SCALEX) < i && (y * SCALEY) > h))                   // Are the displayed coordinates outside of the guide,
-        {
-          CONTEXT.fillRect(xp, OFFSETY + Math.floor(y * q), a, b)               // if displayed? - if yes draw the particle
-        }
+        CONTEXT.fillRect(xp, OFFSETY + Math.floor(y * q), a, b)               // if displayed? - if yes draw the particle
       }
       else if (TRACK && (w = WORLD2[lx][TOP + y]) && ++d == 8)                  // Is tracking on?
       {
@@ -620,10 +649,7 @@ function drawWorld()
           CONTEXT.fillStyle = c = '#bdf'                                        // Change color if different
         }
 
-        if (!(GUIDE && (x * SCALEX) < i && (y * SCALEY) > h))                   // Outside guide area, if displayed?
-        {
-          CONTEXT.fillRect(xp, OFFSETY + Math.floor(y * q), p1, q1)             // Yes so draw dot
-        }
+        CONTEXT.fillRect(xp, OFFSETY + Math.floor(y * q), p1, q1)             // Yes so draw dot
       }
       y++
     }
@@ -677,18 +703,16 @@ function drawSmall()                                                            
         wx1 = wx      * 5 / QRES,
         hy1 = hy      * 5 / QRES
 
-  if (!GUIDE && ZOOMED)                                                         // When the guide window is not on, this draws
-  {                                                                             // A rectangle to indicare the zoom level
-    ZOOMED = false                                                              // and position, but only during zooming and mouse moves
-    CONTEXT.beginPath()
-    CONTEXT.rect(lq * 5 + 6, tq * 5 + 3, wx * 5, hy * 5)
-    CONTEXT.stroke()
-  }
+  //if (!GUIDE && ZOOMED)                                                         // When the guide window is not on, this draws
+  //{                                                                             // A rectangle to indicare the zoom level
+  //  ZOOMED = false                                                              // and position, but only during zooming and mouse moves
+  //  CONTEXT.beginPath()
+  //  CONTEXT.rect(lq * 5 + 6, tq * 5 + 3, wx * 5, hy * 5)
+  //  CONTEXT.stroke()
+  //}
 
-  if (GUIDE && --SMALLCTR == 0)                                                 // If selected display the guide window
+  if (GUIDE)                                                                    // If selected display the guide window
   {                                                                             // but at a reduce frame rate
-    SMALLCTR = SMALLCOUNT
-
     CONTEXT.fillStyle = EDITMODE ? '#006' : '#204'                              // Fill background of guide window
     CONTEXT.fillRect(1, bh * QRES - 1, bwq, bhq)
     CONTEXT.fillStyle = EDITMODE ? '#205' : '#402'                              // Fill background of selection
@@ -733,10 +757,10 @@ function drawSmall()                                                            
     CONTEXT.stroke()
   }
 
-  if (GUIDE && !EDITMODE)                                                       // Mini mouse pointer
+  if (!EDITMODE)                                                                 // Mini mouse pointer
   {
-    CONTEXT.fillStyle = '#00f'                                                  // This draws more frequently as it
-    CONTEXT.fillRect(mx,     my,      2, 10)                                    // has little impact on speed
+    CONTEXT.fillStyle = '#00f'
+    CONTEXT.fillRect(mx,     my,      2, 10)
     CONTEXT.fillRect(mx + 2, my +  2, 2,  8)
     CONTEXT.fillRect(mx + 4, my +  4, 2,  8)
     CONTEXT.fillStyle = '#aaf'
@@ -796,26 +820,6 @@ function randomOpenRectangle()                                                  
   rectangle(intRand(WIDTH - w1) + w2, intRand(HEIGHT - h1) + h2,
             intRand(WIDTH - w1) + w2, intRand(HEIGHT - h1) + h2,
               RCLICK ? 0 : 1)
-  ifStep(1)
-}
-
-function randomTriangle()                                                       // Draws a random rectangle of particles in the world
-{
-  const w1 = Math.floor(WIDTH  /  5),
-        w2 = Math.floor(WIDTH  / 10),
-        h1 = Math.floor(HEIGHT /  5),
-        h2 = Math.floor(HEIGHT / 10),
-        x1 = intRand(WIDTH  - w1) + w2,
-        x2 = intRand(WIDTH  - w1) + w2,
-        x3 = intRand(WIDTH  - w1) + w2,
-        y1 = intRand(HEIGHT - h1) + h2,
-        y2 = intRand(HEIGHT - h1) + h2,
-        y3 = intRand(HEIGHT - h1) + h2
-
-  line(x1, y1, x2, y2, RCLICK ? 0 : 1)
-  line(x2, y2, x3, y3, RCLICK ? 0 : 1)
-  line(x3, y3, x1, y1, RCLICK ? 0 : 1)
-
   ifStep(1)
 }
 
@@ -999,11 +1003,7 @@ function decodeWorld(s)                                                         
       parseInt(RLE0.indexOf(s.charAt(j++)))
   p = s.charAt(j++)
 
-  if (h >  320        && QRES == 2 ||
-      h <= BWIDTH / 2 && QRES == 1)
-  {
-    setQres()
-  }
+  setQres(1)
 
   while (j < s.length)
   {
@@ -1107,32 +1107,17 @@ function monoColor()                                                            
 function playCritrs()                                                           // Switch to playing CRITRS
 {
   CRITRTYPE            = 0
-  SHOWN                =
-  VARYLIFE             = false
+  SHOWN                = false
   matrix.style.display = 'block'
 }
 
 function playLife()                                                             // Switch to playing Life
 {
+  VLIFEB               = [0, 0, 1, 0, 0, 0, 0, 0]
+  VLIFED               = [1, 0, 0, 1, 1, 1, 1, 1]
   CRITRTYPE            = 1
   SHOWN                = false
   matrix.style.display = 'none'
-}
-
-function varyLife()
-{
-  VARYLIFE = !VARYLIFE
-
-  if (!VARYLIFE)
-  {
-    VLIFERULES = [3, 2, 3]
-  }
-  else
-  {
-    setRules()
-  }
-
-  SHOWN = false
 }
 
 function updateControls()                                                       // Just update the info section each frame
@@ -1144,30 +1129,18 @@ function updateControls()                                                       
                         PRESETS.length : (PRESET + 1) % PRESETS.length,
         r  = LIMIT ? 7 : n * (n - 1) / 2 + 1
 
-  let a = 0,
-      b = ''
-      t = r ** n
+  let t = r ** n
 
   if (mt < MT) MT = mt
 
   t = t.toExponential(2).toString()
   t = t.substr(0, 4) + " &times; 10<sup>" + t.substr(6) + "</sup>"
 
-  while (a < 9)
-  {
-    if (a < VLIFERULES[1] || a > VLIFERULES[2])
-    {
-      b += a.toString()
-    }
-    a++
-  }
-
   i0.innerHTML = Math.ceil((MODE / MODECT * 100)) + "% (" +
                  WIDTH + " &times; " + HEIGHT + ")"
   i1.innerHTML = DIDPRESET? p + " of " + PRESETS.length :
                  "None (Next is " + q + " of " + PRESETS.length + ")"
   i3.innerHTML = ((STEP || EDITMODE) ? 0 : FPS) + " FPS"
-  i4.innerHTML = 'B = ' + VLIFERULES[0] + ' &nbsp; D = ' + b
 
   if (CRITRTYPE == 0)
   {
@@ -1184,7 +1157,7 @@ function showRules()                                                            
 {
   let c, c1, c2, x, y, p, q, s
 
-  if (VARYLIFE)
+  if (CRITRTYPE == 1)
   {
     return
   }
@@ -1270,15 +1243,19 @@ function setRule(x, y, p, q, r, s)                                              
 
 function setRules()                                                             // Sets a random set of rules
 {
-  let a, b, c, y, z,
+  let y, z
+      j = 0,
       x = 0
 
-  if (VARYLIFE)
+  if (CRITRTYPE == 1)
   {
-    VLIFERULES[0] = intRand(            3) + 1
-    VLIFERULES[1] = intRand(VLIFERULES[0]) + 2
-    VLIFERULES[2] = intRand(VLIFERULES[1]) + VLIFERULES[1]
+    while (j < 8)
+    {
+      VLIFEB[j  ] = intRand(2)
+      VLIFED[j++] = intRand(2)
+    }
 
+    SHOWN = false
     return
   }
 
@@ -1604,6 +1581,8 @@ window.addEventListener('contextmenu', function(e)                              
 
 window.addEventListener('keydown', function(e)                                  // A key has been pressed
 {
+  let r
+
   const code = e.keyCode ? e.keyCode : e.which                                  // Account for different browsers
 
   if (e.shiftKey)
@@ -1616,14 +1595,13 @@ window.addEventListener('keydown', function(e)                                  
     return                                                                      // These keys are ignored during editing
   }
 
-  if (CRITRTYPE == 0 || VARYLIFE)
+  if (CRITRTYPE == 0)
   {
     switch(SHIFT ? code + 1000 : code)                                          // Add 1000 if Shift is pressed
     {
-      case   72: setHardborder();                  break                        // H
+      case   69: setMultipass();                   break                        // E
       case   73: trackChange();                    break                        // I
       case   77: setMutate();                      break                        // M
-      case   78: setRules();                       break                        // N
       case   85: setLimit();                       break                        // U
       case   49: case 50: case 51:
       case   52: case 53: case 54:
@@ -1641,19 +1619,40 @@ window.addEventListener('keydown', function(e)                                  
     case   65: newPreset();                        break                        // A
     case   67: clearWorld();                       break                        // C
     case   68: setInfo();                          break                        // D
-    case   69: setMultipass();                     break                        // E
     case   70: randomFilledRectangle();            break                        // F
     case   71: setGuide();                         break                        // G
+    case   72: setHardborder();                    break                        // H
     case   75: makeCode();                         break                        // K
     case   76: randomLine();                       break                        // L
+    case   78: setRules();                         break                        // N
     case   79: randomOpenRectangle();              break                        // O
     case   80: setStep();                          break                        // P
-    case   81: setQres();                          break                        // Q
-    case   82: randomTriangle();                   break                        // R
     case   83: STEPFLAG = false; backtoBin();      break                        // S
     case   84: monoColor();                        break                        // T
-    case   86: varyLife();                         break                        // V
     case   87: writeCritrs();                      break                        // W
+    case  219: minusRes();                         break                        // [
+    case  221: plusRes();                          break                        // ]
+  }
+
+  function plusRes()
+  {
+    r = QRES + 1
+
+    if (r < 10)
+    {
+      setQres(r)
+      SHOWN = false
+    }
+  }
+
+  function minusRes()
+  {
+    r = QRES - 1
+
+    if (r > 0)
+    {
+      setQres(r)
+      SHOWN = false    }
   }
 
   function changeMatrix()                                                       // Modify the rules in the matrix
@@ -1701,15 +1700,30 @@ function setGuide()                                                             
   SHOWN = false
 }
 
-function setQres()                                                              // Switch between full and quarter resolution
+function setQres(r)
 {
-  let c, d, k, l, m,
-      j = 0
-
-  QRES = (QRES == 1) ? 2 : 1
-
-  if (QRES == 2)                                                                // If quarter resolution copy down the world
+  if (QRES == 1 && r != 1)
   {
+    scaleDown(r)
+  }
+  else
+  {
+    scaleUp(QRES)
+    QRES = 1
+    doResize()                                                                    // Resize the display
+    scaleDown(r)
+  }
+
+  QRES = r
+  doResize()                                                                    // Resize the display
+
+  FPSA.fill(FPS)                                                                // Fill FPS artray with estimated new FPS
+
+  function scaleDown(r)
+  {
+    let c, k, l, m
+        j = 0
+ 
     while (j < BWIDTH)
     {
       k = 0
@@ -1719,11 +1733,11 @@ function setQres()                                                              
         l = 0
         d = 0
 
-        while (l < 2)
+        while (l < r)
         {
           m = 0
 
-          while (m < 2)
+          while (m < r)
           {
             d += WORLD[j + l][k + m++]
           }
@@ -1731,53 +1745,50 @@ function setQres()                                                              
           l++
         }
 
-        WORLD[j / 2][k / 2] = Math.sign(d)
-        k += 2
+        WORLD[j / r][k / r] = d
+        k += r
       }
-      j += 2
+      j += r
     }
 
-    PAGEX /= 2                                                                  // Modify mouse x & y copy accordingly
-    PAGEY /= 2
-    FPS   *= 2
+    PAGEX /= r                                                                  // Modify mouse x & y copy accordingly
+    PAGEY /= r
+    FPS   *= r
   }
-  else                                                                          // If full resolution copy up the world
+
+  function scaleUp(r)
   {
-    j = BWIDTH * 2 - 2
+    let c, k, l, m
+        j = BWIDTH * r - r
 
     while (j >= 0)
     {
-      k = BHEIGHT * 2 - 2
+      k = BHEIGHT * r - r
 
       while (k >= 0)
       {
         l = 0
-        c = WORLD[j / 2][k / 2]
+        c = WORLD[j / r][k / r]
 
-        while (l < 2)
+        while (l < r)
         {
           m = 0
 
-          while (m < 2)
+          while (m < r)
           {
             WORLD[j + l][k + m++] = c
           }
           l++
         }
-        k -= 2
+        k -= r
       }
-      j -= 2
+      j -= r
     }
 
-    PAGEX *= 2                                                                  // Modify mouse x & y copy accordingly
-    PAGEY *= 2
-    FPS   /= 2
+    PAGEX *= r                                                                  // Modify mouse x & y copy accordingly
+    PAGEY *= r
+    FPS   /= r
   }
-
-  FPSA.fill(FPS)                                                                // Fill FPS artray with estimated new FPS
-  doResize()                                                                    // Resize the display
-
-  SHOWN = false                                                                 // ALow info window to update
 }
 
 function setLimit()                                                             // between limiting to 2x2 section or not
