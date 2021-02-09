@@ -1,6 +1,6 @@
                                                                                 // Critrs (c) 2021 Robin Nixon
 
-const VERSION     = "0.99k",                                                    // This version
+const VERSION     = "0.9b01",                                                  // This version
       DIDCOPY     = "The following code has been copied to the clipboard. "   + // Used if copying to the keyboard buffer succeeded...
                     "Paste it into the 'presets.js' file to save the "        +
                     "current settings as a new preset.\n\n",
@@ -8,12 +8,12 @@ const VERSION     = "0.99k",                                                    
                     "manually type it into the 'presets.js' file to save "    +
                     "the current settings as a new preset.\n\n",
       MUTATEDELAY = 15,                                                         // Delay in seconds between mutations
-      FPSBUFSIZE  = 100,                                                        // Size of frame counter buffer
+      FPSBUFSIZE  = 200,                                                        // Size of frame counter buffer
       RLE0        = '0123456789abcdefghijklmnopqrstuvwxyz' +                    // Used for compressing world data
                               'ABCDEFGHIJKLMNOPQRSTUVWXYZ@#;',                  // for saving and loading presets
-      RLE1        = ' :£$%^&*()-_+={}[]~<>,.?/|¬'                               
+      RLE1        = ' :£$%^&*()-_+={}[]~<>,.?/|¬'
       MAXWIDTH    = 2600,                                                       // Should fit most monitor widths
-      MAXHEIGHT   = 640                                                         // No need for more height than this
+      MAXHEIGHT   = 700                                                         // No need for more height than this
 
 let DIDPRESET  =                                                                // Flags that start off true
     GUIDE      =
@@ -45,18 +45,19 @@ let DIDPRESET  =                                                                
     OFFSETY    =
     TOP        =
     ROTIMEOUT  =
+    GUIDECT    =
     LEFT       = 0,
     CRITRTYPE  = 0,
-    QRES       = 1,                                                             // 1 = normal, 2 = quarter resolution
-    SMALLCOUNT = QRES * 2,                                                      // Frequency of displaying guide window
+    GUIDERATE  = 10,
+    RSLTN      = 1,                                                             // 1 = highest, 9 = lowest - start at 1 for setup...
     BWIDTH     = Math.min(MAXWIDTH,  window.innerWidth  - 32),                  // Allow for scrollbar
     BHEIGHT    = Math.min(MAXHEIGHT, window.innerHeight - 12),                  // Leave room for canvas bottom in res of less than 640
     WORLD      = createArray(MAXWIDTH, MAXHEIGHT),                              // The game world
     WORLD2     = createArray(MAXWIDTH, MAXHEIGHT),                              // A copy of the world for various uses
-    MODECT     =
-    MODE       = 100,                                                           // Number of zoom levels
-    MODEX      = BWIDTH  / MODECT,                                              // The Dimensiopns of the current zoom level
-    MODEY      = BHEIGHT / MODECT,
+    ZOOMCT     =                                                                // Number of zoom levels
+    ZOOMLEV    = 100,                                                           // Current zoom level
+    MODEX      = BWIDTH  / ZOOMCT,                                              // The Dimensiopns of the current zoom level
+    MODEY      = BHEIGHT / ZOOMCT,
     WIDTH      = BWIDTH,                                                        // Width of current zoom
     HEIGHT     = BHEIGHT,                                                       // Height of current zoom
     SCALEX     = BWIDTH  / WIDTH,                                               // Scale factor for zoom level
@@ -80,13 +81,15 @@ let DIDPRESET  =                                                                
     CANV       = canvas                                                         // A pointer to the canvas
     CANV.rpl   = canvas.requestPointerLock || canvas.mozRequestPointerLock      // For requesting a pointer lock on the cursor
 
+let TGUIDE
+
 init()                                                                          // Prepare everything
 
 function init()
 {
   setupCanvas()                                                                 // Ready the canvas
   clearWorld()                                                                  // Empty the WORLD
-  setQres(4)                                                                    // Select a medium resolution
+  setRes(4)                                                                    // Select a medium resolution
   newPreset()                                                                   // Load in the first preset from presets.js
 
   setTimeout(mainLoop, 0)                                                       // Jump to the loop at next available cycle
@@ -204,8 +207,6 @@ function mainLoop()                                                             
   function showInfo()                                                           // The information and control panel
   {
     let k,
-        b = [0, 0, 0, 0, 0, 0, 0, 0],
-        d = [0, 0, 0, 0, 0, 0, 0, 0],
         j = 1,
         s = ''
 
@@ -219,33 +220,39 @@ function mainLoop()                                                             
 
     s += "<tr><th colspan=2 style='height:20px; background:#008; color:#8f8;" +
          "border:1px solid #008; font-size:16px; text-align:center'><b>"      +
-         "CRITRS v" + VERSION + " &nbsp; &copy; 2021 by <a href="             +
-         "http://robinnixon.com>Robin Nixon</a></b>&nbsp;</span></th></tr>"   +
-         "<tr><th colspan=2></th></tr>"
+         "CRITRS v" + VERSION + " &copy; 2021 by <a href=http://robinnixon."  +
+         "com>Robin Nixon</a></b>&nbsp;</span></th></tr><tr><th colspan=2>"   +
+         "</th></tr>"
 
-    s += "<tr><td width=50%>Zoom Level</td><td align=right><span id=i0>"      +
-         "&nbsp;</span></td></tr>"
-
-    s += "<tr><td>Current Preset</td><td align=right><span id=i1>&nbsp;"      +
-         "</span></td></tr>"
-
-    s += "<tr><td>Frame Rate</td><td align=right><span id=i3>&nbsp;</span>"   +
+    s += "<tr><td width=50%>Zoom Level</td><td align=right data-title='If "   +
+         "you are not sure how far in or out your are zoomed, ensure the "    +
+         "guide window is on and refer to it'><span id=i0>&nbsp;</span>"      +
          "</td></tr>"
 
+    s += "<tr><td>Current Preset</td><td align=right data-title='These "      +
+         "presets are in the presets.js file - you can change them or add "   +
+         "your own if you download this program'><span id=i1>&nbsp;</span>"   +
+         "</td></tr>"
+
+    s += "<tr><td>Frame Rate</td><td align=right data-title='If the frame "   +
+         "rate is slow try decreasing resolution, zooming in, or decreasing " +
+         "particles'><span id=i3>&nbsp;</span></td></tr>"
 
     if (CRITRTYPE == 1)
     {
-      s += "<tr><th colspan=2 style='color:#ff0'><i>Standard Rules: &nbsp; "  +
-           "&nbsp;&nbsp; <span style='color:#9f9'>Create = 3</span> &nbsp; "  +
-           "<span style='color:#f99'>Remove = 1, 4, 5, 6, 7, 8</span></i>"    +
-           "</th></tr>"
+      s += "</tr><tr><th colspan=2></th></tr>"
 
-      s += "<tr><td><span style='color:#9f9'>Create</span> new particle if "  +
-           "any of these numbers of neighbors:</td><td align=right><span "    +
-           "style='font-size:14px'>1 &nbsp; 2 &nbsp; 3 &nbsp; 4 &nbsp; 5 "    +
-           "&nbsp; 6 &nbsp; 7 &nbsp; 8&nbsp;</span>"
+      s += "<tr><td style='color:#99f'><i>Original Game of Life Rules:"       +
+           "</i></td><td align=right style='color:#99f'><i><span style='"     +
+           "color:#9f9'>C = 3</span> &nbsp;/&nbsp; <span style='color:#f99'>" +
+           "R = 1, 4, 5, 6, 7, 8</span></i></th></tr>"
 
-      j = 1
+      s += "<tr><td>Create new particle if any of these numbers of "          +
+           "neighbors:</td><td align=right><span style='padding-right:3px; "  +
+           "color:#9f9'><div class=checknum>1</div><div class=checknum>2"     +
+           "</div><div class=checknum>3</div><div class=checknum>4</div>"     +
+           "<div class=checknum>5</div><div class=checknum>6</div><div "      +
+           "class=checknum>7</div><div class=checknum>8</div></span><br>"
 
       while (j < 9)
       {
@@ -255,10 +262,12 @@ function mainLoop()                                                             
 
       s += "</span></td></tr>"
 
-      s += "<tr><td><span style='color:#f99'>Remove</span> particle if any "  +
-           "of these numbers of neighbors:</td><td align=right><span style="  +
-           "'font-size:14px'>1 &nbsp; 2 " + "&nbsp; 3 &nbsp; 4 &nbsp; 5 "     +
-           "&nbsp; 6 &nbsp; 7 &nbsp; 8&nbsp;</span>"
+      s += "<tr><td>Remove particle if any of these numbers of neighbors:"    +
+           "</td><td align=right><span style='padding-right:3px; color:#f99'" +
+           "><div class=checknum>1</div><div class=checknum>2</div><div clas" +
+           "s=checknum>3</div><div class=checknum>4</div><div class=checknum" +
+           ">5</div><div class=checknum>6</div><div class=checknum>7</div>"   +
+           "<div class=checknum>8</div></span><br>"
 
       j = 1
 
@@ -267,23 +276,27 @@ function mainLoop()                                                             
         s += "<input type=checkbox " + (VLIFED[j - 1] ? "checked " : "")      +
              "onclick='VLIFED [" + (j++ - 1) + "] ^= 1; SHOWN = false'>"
       }
-      
+
+      s += "</span></td></tr>"
+      s += "</tr><tr><th colspan=2></th></tr>"
+
       s += "<tr><td>Change Resolution &nbsp;<span class=keys><u>[</u>"        +
            "&thinsp; &hellip; &thinsp;<u>]</u></span></td><td data-title='"   +
            "Changing to a lower resolution (to the right) substantially "     +
            "increases the animation frame rate, while higher resolutions "    +
-           "(to the left) offer much more detail, but at the expense of "     +
-           "speed' align=right><input oninput='setQres(parseInt(this.value))" +
-           "' type=range min=1 max=9 value=" + QRES + "></td></tr>"
+           "(to the left) offer much more detail, at the expense of speed'"   +
+           " align=right><input oninput='setRes(parseInt(this.value))' type"  +
+           "=range min=1 max=9 value=" + RSLTN + "></td></tr>"
     }
 
     s += "</tr><tr><th colspan=2></th></tr>"
 
     s += "<tr ><td><u>G</u>uide Window</td><td data-title='Hides &amp; "      +
-         "displays the bottom-left window' align=right><label class=switch>"  +
-         "<input onclick='setGuide()' type=checkbox "                         +
-         (GUIDE ? "checked" : "") + "><span class='slider round'></span>"     +
-         "</label></td></tr>"
+         "displays the bottom-left window - when the frame rate is slow, "    +
+         "hiding the guide can improve animation speed' align=right><label "  +
+         "class=switch><input onclick='setGuide()' type=checkbox " + (GUIDE   ?
+         "checked" : "") + "><span class='slider round'></span></label>"      +
+         "</td></tr>"
 
     s += "<tr><td><u>T</u>oggle Color / Monochrome</td><td data-title='"      +
          "Choose between colored or monochrome particles' align=right><label" +
@@ -297,7 +310,7 @@ function mainLoop()                                                             
          " type=checkbox " + (STEP ? "checked" : "") + "><span class='slider" +
          " round'></span></label></td></tr>"
 
-      s += "<tr><th colspan=2></th></tr>"
+    s += "<tr><th colspan=2></th></tr>"
 
     if (CRITRTYPE == 0)
     {
@@ -345,36 +358,43 @@ function mainLoop()                                                             
            "&thinsp; &hellip; &thinsp;<u>]</u></span></td><td data-title='"   +
            "Changing to a lower resolution (to the right) substantially "     +
            "increases the animation frame rate, while higher resolutions "    +
-           "(to the left) offer much more detail, but at the expense of "     +
-           "speed' align=right><input oninput='setQres(parseInt(this.value))" +
-           "' type=range min=1 max=9 value=" + QRES + "></td></tr>"
+           "(to the left) offer much more detail, at the expense of speed'"   +
+           " align=right><input oninput='setRes(parseInt(this.value))' type"  +
+           "=range min=1 max=9 value=" + RSLTN + "></td></tr>"
 
       s += "<tr><td>Columns: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; "      +
            "&nbsp; &nbsp; <span class=keys><u>1</u> &hellip; <u>9</u></span>" +
-           "</td><td align=right><input oninput='LEN1=parseInt(this.value); " +
-           "setRules()' type=range min=1 max=9 value=" + LEN1 + "></td></tr>"
+           "</td><td align=right data-title='More columns brings more comp"   +
+           "lexity'><input oninput='LEN1=parseInt(this.value); setRules()' "  +
+           "type=range min=1 max=9 value=" + LEN1 + "></td></tr>"
 
       s += "<tr><td>Rows: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;"   +
            "<span class=keys><u>Shift</u>-<u>1</u> &hellip; <u>9</u></span>"  +
-           "</td><td align=right><input oninput='LEN2=parseInt(this.value); " +
-           "setRules()' type=range min=1 max=9 value=" + LEN2 + "></td></tr>"
+           "</td><td align=right data-title='More rows increases complexity'" +
+           "><input oninput='LEN2=parseInt(this.value); setRules()' type="    +
+           "range min=1 max=9 value=" + LEN2 + "></td></tr>"
 
       s += "<tr><th colspan=2></th></tr>"
 
-      s += "<tr><td><span id=i2a>Next Mutation</span><td align=right><span "  +
-           "id=i2b>&nbsp;</span></td></tr>"
+      s += "<tr><td><span id=i2a>Next Mutation</span><td align=right data-"   +
+           "title='When mutation is on a random rule change is automatically" +
+           "applied every 15 seconds'><span id=i2b>&nbsp;</span></td></tr>"
 
-      s += "<tr><td>Matrix Dimensions</td><td align=right><span id=i4>&nbsp;" +
+      s += "<tr><td>Matrix Dimensions</td><td align=right data-title='The "   +
+           "width and height of the rule matrix'><span id=i4>&nbsp;</span>"   +
+           "</td></tr>"
+
+      s += "<tr><td>Number of Cells</td><td align=right data-title='The "     +
+           "total number of cells in the rule matrix'><span id=i5>&nbsp;"     +
            "</span></td></tr>"
 
-      s += "<tr><td>Number of Cells</td><td align=right><span id=i5>&nbsp;"   +
-           "</span></td></tr>"
+      s += "<tr><td>Available Rules per Cell</td><td align=right data-title=" +
+           "'The number of different possible combinations of rules per "     +
+           "matrix cell'><span id=i6>&nbsp;</span></td></tr>"
 
-      s += "<tr><td>Available Rules per Cell</td><td align=right><span "      +
-           "id=i6>&nbsp;</span></td></tr>"
-
-      s += "<tr><td>Possible Combinations</td><td align=right><span id=i7>"   +
-           "&nbsp;<sup>&nbsp;</sup></span></td></tr>"
+      s += "<tr><td>Possible Combinations</td><td align=right data-title="    +
+           "'The grand total number of possible variations of rules for "     +
+           "this matrix'><span id=i7>nbsp;<sup>&nbsp;</sup></span></td></tr>"
 
       s += "<tr><th colspan=2></th></tr>"
 
@@ -383,6 +403,8 @@ function mainLoop()                                                             
     }
     else if (CRITRTYPE == 1)
     {
+      s += "</tr><tr><th colspan=2></th></tr>"
+
       s += "<tr><td colspan=2><button onclick='playCritrs()' style='width:"   +
            "100%'>This is The Game of Life - Play CRITRS</button></td></tr>"
     }
@@ -472,6 +494,7 @@ function updateLife()                                                           
   while (x < BWIDTH)                                                            // For these large arrays 'while' has tested a few
   {                                                                             // percent faster than 'for', that's more FPS!
     y = 0
+
     WORLD2[x].fill(0)
 
     while (y < BHEIGHT)
@@ -484,11 +507,12 @@ function updateLife()                                                           
           (WORLD[wrapX(x - 1)][wrapY(y + 1)] ? 1 : 0) +
           (WORLD[      x     ][wrapY(y + 1)] ? 1 : 0) +
           (WORLD[wrapX(x + 1)][wrapY(y + 1)] ? 1 : 0)
+
       m = WORLD[x][y]                                                           // Is the current cell occupied?
 
       if      ( m && !VLIFED[n - 1])
       {                                                                         // If not in these bounds a particle 'dies'
-        WORLD2[x][y] = m + .1                                                   // A small value to cycle colors slower
+        WORLD2[x][y] = m + .05                                                 // A small value to cycle colors slower
       }
       else if (!m &&  VLIFEB[n - 1])                                            // The cell is unoccupied and...
       {
@@ -603,8 +627,8 @@ function drawWorld()
       c = '',                                                                   // for zoom and panning
       d = 0
 
-  const p  = SCALEX * QRES,                                                     // Calculate now, once, and not in the loops
-        q  = SCALEY * QRES,
+  const p  = SCALEX * RSLTN,                                                     // Calculate now, once, and not in the loops
+        q  = SCALEY * RSLTN,
         p1 = FPS < 15 ? Math.ceil(p / 4 + .5) : p / 4 + .5,
         q1 = FPS < 15 ? Math.ceil(q / 4 + .5) : q / 4 + .5,
         a  = FPS < 15 ? Math.floor(p + 1) : p + 1,
@@ -613,15 +637,15 @@ function drawWorld()
         bw = BWIDTH  *.8,
         h  = Math.floor(bh - p - 2)         - OFFSETY,
         i  = Math.floor(BWIDTH / 5 + q + 2) - OFFSETX * 1.8,
-        wq = BWIDTH  * QRES,
-        hq = BHEIGHT * QRES
+        wq = BWIDTH  * RSLTN,
+        hq = BHEIGHT * RSLTN
 
-  CONTEXT.fillStyle = '#102'                                                    // World bacground color
+  CONTEXT.fillStyle = '#102'                                                    // World background color
 
-    if (GUIDE)                                                                    // Clear the canvas around the guide
+  if (GUIDE)                                                                    // Clear the canvas around the guide
   {
-    CONTEXT.fillRect(0, 0, wq, bh * QRES - 3)
-    CONTEXT.fillRect(wq / 5 + 3, hq *.8 - 3, bw * QRES, hq / 5 + 3)
+    CONTEXT.fillRect(0, 0, wq, bh * RSLTN - 3)
+    CONTEXT.fillRect(wq / 5 + 3, hq *.8 - 3, bw * RSLTN, hq / 5 + 3)
   }
   else
   {
@@ -638,12 +662,12 @@ function drawWorld()
     {
       if (w = Math.ceil(WORLD[lx][TOP + y]))                                    // Found a particle?
       {
-        if (c != w)
+        if (c != w)                                                             // To minimise speed loss...
         {
           CONTEXT.fillStyle = c = MONO ? COLORS[1] : COLORS[w % 256]            // Change color, but only if different to last time
         }
 
-        CONTEXT.fillRect(xp, OFFSETY + Math.floor(y * q), a, b)               // if displayed? - if yes draw the particle
+        CONTEXT.fillRect(xp, OFFSETY + Math.floor(y * q), a, b)                 // Draw the particle
       }
       else if (TRACK && (w = WORLD2[lx][TOP + y]) && ++d == 8)                  // Is tracking on?
       {
@@ -654,14 +678,14 @@ function drawWorld()
           CONTEXT.fillStyle = c = '#bdf'                                        // Change color if different
         }
 
-        CONTEXT.fillRect(xp, OFFSETY + Math.floor(y * q), p1, q1)             // Yes so draw dot
+        CONTEXT.fillRect(xp, OFFSETY + Math.floor(y * q), p1, q1)               // Yes so draw dot
       }
       y++
     }
     x++
   }
 
-  if (CRITRTYPE == 0 && !STEP)
+  if (CRITRTYPE == 0)
   {
     backtoBin()                                                                 // Have the colors restart at 1
   }
@@ -669,19 +693,24 @@ function drawWorld()
   drawSmall()
 }
 
-function backtoBin()
+function backtoBin()                                                            // Resets colors of particles
 {
   let y,
       x = 0
 
-  while (x < BWIDTH)                                                            // Restarting at 1 keeps colors consistent and
+  if (STEP)                                                                     // Don't remove color info if stepping
+  {
+    return
+  }
+
+  while (x < BWIDTH)                                                            // Restarting at 1 keeps colors consistent and...
   {
     y = 0
     WORLD2[x].fill(0)
 
-    while (y < BHEIGHT)                                                         // less sparkly
+    while (y < BHEIGHT)                                                         // ...less sparkly
     {
-      WORLD[x][y] = WORLD[x][y] ? 1 : 0
+      WORLD[x][y] = WORLD[x][y] ? 1 : 0                                         // All positive values bcome 1
       y++
     }
     x++
@@ -694,36 +723,30 @@ function drawSmall()                                                            
       x = 0
 
   const bh  = BHEIGHT * .8,                                                     // Calculate in advance, outside of the loops
-        h   = Math.floor(bh * QRES),
-        q   = QRES    / 5,
-        q5  = QRES    * 5,
+        h   = Math.floor(bh * RSLTN),
+        q   = RSLTN   / 5,
+        q5  = RSLTN   * 5,
         lq  = LEFT    * q,
         tq  = TOP     * q,
         mx  = PAGEX   * q,
         my  = PAGEY   * q + h,
         bhq = BHEIGHT * q,
         bwq = BWIDTH  * q,
-        wx  = (MODE == MODECT) ? WIDTH * q -2 : WIDTH * q
+        wx  = (ZOOMLEV == ZOOMCT) ? WIDTH * q -2 : WIDTH * q
         hy  = HEIGHT  * q - 1,
-        wx1 = wx      * 5 / QRES,
-        hy1 = hy      * 5 / QRES
+        wx1 = wx      * 5 / RSLTN,
+        hy1 = hy      * 5 / RSLTN
 
-  //if (!GUIDE && ZOOMED)                                                         // When the guide window is not on, this draws
-  //{                                                                             // A rectangle to indicare the zoom level
-  //  ZOOMED = false                                                              // and position, but only during zooming and mouse moves
-  //  CONTEXT.beginPath()
-  //  CONTEXT.rect(lq * 5 + 6, tq * 5 + 3, wx * 5, hy * 5)
-  //  CONTEXT.stroke()
-  //}
+  if (GUIDE && GUIDECT == 0)                                                    // If on and the counter is ready, display the guide window
+  {
+    GUIDECT = GUIDERATE                                                         // GUIDERATE is the frame delay between redraws
 
-  if (GUIDE)                                                                    // If selected display the guide window
-  {                                                                             // but at a reduce frame rate
     CONTEXT.fillStyle = EDITMODE ? '#006' : '#204'                              // Fill background of guide window
-    CONTEXT.fillRect(1, bh * QRES - 1, bwq, bhq)
+    CONTEXT.fillRect(1, bh * RSLTN - 1, bwq, bhq)
     CONTEXT.fillStyle = EDITMODE ? '#205' : '#402'                              // Fill background of selection
     CONTEXT.fillRect(lq + 2, h + tq, wx, hy)
 
-    while (x < BWIDTH)                                                          // Select pixel color
+    while (x < BWIDTH)                                                          // Draw a mini copy of the world
     {
       y = 0
 
@@ -743,8 +766,8 @@ function drawSmall()                                                            
             CONTEXT.fillStyle = '#888'                                          // Outside selection
           }
 
-          CONTEXT.fillRect(Math.floor(    (x / 5) * QRES),                      // Draw pixels
-                           Math.floor(h + (y / 5) * QRES), 1, 1)
+          CONTEXT.fillRect(Math.floor(    (x / 5) * RSLTN),                     // Draw pixels
+                           Math.floor(h + (y / 5) * RSLTN), 1, 1)
         }
         y++
       }
@@ -758,11 +781,30 @@ function drawSmall()                                                            
 
     CONTEXT.strokeStyle = '#fff'
     CONTEXT.beginPath()
-    CONTEXT.rect(0, bh * QRES - 2, bwq + 2, bhq + 2)                            // Outline guide window
+    CONTEXT.rect(0, bh * RSLTN - 2, bwq + 2, bhq + 2)                           // Outline guide window
     CONTEXT.stroke()
+
+    TGUIDE = CONTEXT.getImageData(1, h - 4, bwq + 4, bhq + 4)                   // Copy the guide to save recreating it over and over
+  }
+  else if (GUIDE)
+  {
+    CONTEXT.strokeStyle = EDITMODE ? '#fff' : '#8af'
+    CONTEXT.beginPath()
+    CONTEXT.rect(lq + 2, h + tq, wx, hy)                                        // Outline selection
+    CONTEXT.stroke()
+
+    CONTEXT.strokeStyle = '#fff'
+    CONTEXT.beginPath()
+    CONTEXT.rect(0, bh * RSLTN - 2, bwq + 2, bhq + 2)                           // Outline guide window
+    CONTEXT.stroke()
+
+    CONTEXT.putImageData(TGUIDE, 1, h - 4)                                      // Paste the copy of the guide to the canvas
+    GUIDECT--                                                                   // Count down to the next full redraw
   }
 
-  if (!EDITMODE)                                                                 // Mini mouse pointer
+  GUIDERATE = Math.min(Math.floor(160 / Math.min(FPS, 160)), 10)                // Thew slower the FPS the less frequently the guide redraws
+
+  if (GUIDE && !EDITMODE)                                                       // Mini mouse pointer
   {
     CONTEXT.fillStyle = '#00f'
     CONTEXT.fillRect(mx,     my,      2, 10)
@@ -776,8 +818,8 @@ function drawSmall()                                                            
 
 function setupCanvas()                                                          // Sets up the canvas
 {
-  canvas.width  = BWIDTH  * QRES
-  canvas.height = BHEIGHT * QRES
+  canvas.width  = BWIDTH  * RSLTN
+  canvas.height = BHEIGHT * RSLTN
 }
 
 function clearWorld()                                                           // Empties the world of all particles
@@ -817,40 +859,23 @@ function editCursor()                                                           
 
 function randomOpenRectangle()                                                  // Draws a random open rectangle of particles in the world
 {
-  const w1 = Math.floor(WIDTH  /  5),
-        w2 = Math.floor(WIDTH  / 10),
-        h1 = Math.floor(HEIGHT /  5),
-        h2 = Math.floor(HEIGHT / 10)
+  rectangle(intRand(WIDTH), intRand(HEIGHT),
+            intRand(WIDTH), intRand(HEIGHT), RCLICK ? 0 : 1)
 
-  rectangle(intRand(WIDTH - w1) + w2, intRand(HEIGHT - h1) + h2,
-            intRand(WIDTH - w1) + w2, intRand(HEIGHT - h1) + h2,
-              RCLICK ? 0 : 1)
   ifStep(1)
 }
 
 function randomFilledRectangle()                                                // Draws a random filled rectangle of particles in the world
 {
-  const w1 = Math.floor(WIDTH  /  5),
-        w2 = Math.floor(WIDTH  / 10),
-        h1 = Math.floor(HEIGHT /  5),
-        h2 = Math.floor(HEIGHT / 10)
-
-  filledRectangle(intRand(WIDTH - w1) + w2, intRand(HEIGHT - h1) + h2,
-                  intRand(WIDTH - w1) + w2, intRand(HEIGHT - h1) + h2,
-                    RCLICK ? 0 : 1)
+  filledRectangle(intRand(WIDTH), intRand(HEIGHT),
+                  intRand(WIDTH), intRand(HEIGHT), RCLICK ? 0 : 1)
   ifStep(1)
 }
 
 function randomLine()                                                           // Draws a random line of particles in the world
 {
-  const w1 = Math.floor(WIDTH  /  5),
-        w2 = Math.floor(WIDTH  / 10),
-        h1 = Math.floor(HEIGHT /  5),
-        h2 = Math.floor(HEIGHT / 10)
-
-  line(intRand(WIDTH - w1) + w2, intRand(HEIGHT - h1) + h2,
-       intRand(WIDTH - w1) + w2, intRand(HEIGHT - h1) + h2,
-         RCLICK ? 0 : 1)
+  line(intRand(WIDTH), intRand(HEIGHT),
+       intRand(WIDTH), intRand(HEIGHT), RCLICK ? 0 : 1)
 
   ifStep(1)
 }
@@ -907,7 +932,7 @@ function filledRectangle(x1, y1, x2, y2, c = 1)                                 
   {
     line(j, y1, j, y2, c)
 
-    j += Math.sign(x2 - x1)
+    j += Math.sign(x2 - x1)                                                     // Either + or - according to +ve or -ve value
   }
 }
 
@@ -943,21 +968,21 @@ function makeCode()                                                             
       x++
     }
   }
-  else if (CRITRTYPE == 1)
+  else if (CRITRTYPE == 1)                                                      // Life
   {
     j = 0
 
     while (j < 8)
     {
-      c += (VLIFEB[j++    ] ? '1' : '0') + ','
+      c += (VLIFEB[j++    ] ? '1' : '0') + ','                                  // The create rules
     }
 
     while (j < 16)
     {
-      c += (VLIFED[j++ - 8] ? '1' : '0') + ','
+      c += (VLIFED[j++ - 8] ? '1' : '0') + ','                                  // The remove rules
     }
   }
-  
+
 
   o  = RLE0.charAt(Math.floor(BWIDTH  / 64)) +                                  // The particle locations are encoded in o
        RLE0.charAt(Math.floor(BWIDTH  % 64))                                    // Store the width & height in base 64
@@ -967,7 +992,7 @@ function makeCode()                                                             
 
   x = 0
   f = 0
-  d = WORLD[0][0]
+  d = WORLD[0][0]                                                               // Get the first particle / empty cell
 
   while(x < BWIDTH)                                                             // DATA FORMAT...
   {
@@ -1023,7 +1048,7 @@ function decodeWorld(s)                                                         
       parseInt(RLE0.indexOf(s.charAt(j++)))
   p = s.charAt(j++)
 
-  setQres(1)
+  setRes(1)                                                                     // To do: Make the resolution suit the preset data size
 
   while (j < s.length)
   {
@@ -1133,8 +1158,8 @@ function playCritrs()                                                           
 
 function playLife()                                                             // Switch to playing Life
 {
-  VLIFEB               = [0, 0, 1, 0, 0, 0, 0, 0]
-  VLIFED               = [1, 0, 0, 1, 1, 1, 1, 1]
+  VLIFEB               = [0, 0, 1, 0, 0, 0, 0, 0]                               // Standard
+  VLIFED               = [1, 0, 0, 1, 1, 1, 1, 1]                               // Life rules
   CRITRTYPE            = 1
   SHOWN                = false
   matrix.style.display = 'none'
@@ -1156,7 +1181,7 @@ function updateControls()                                                       
   t = t.toExponential(2).toString()
   t = t.substr(0, 4) + " &times; 10<sup>" + t.substr(6) + "</sup>"
 
-  i0.innerHTML = Math.ceil((MODE / MODECT * 100)) + "% (" +
+  i0.innerHTML = Math.ceil((ZOOMLEV / ZOOMCT * 100)) + "% (" +
                  WIDTH + " &times; " + HEIGHT + ")"
   i1.innerHTML = DIDPRESET? p + " of " + PRESETS.length :
                  "None (Next is " + q + " of " + PRESETS.length + ")"
@@ -1267,12 +1292,12 @@ function setRules()                                                             
       j = 0,
       x = 0
 
-  if (CRITRTYPE == 1)
+  if (CRITRTYPE == 1)                                                           // Life
   {
     while (j < 8)
     {
-      VLIFEB[j  ] = intRand(2)
-      VLIFED[j++] = intRand(2)
+      VLIFEB[j  ] = intRand(2)                                                  // Random create
+      VLIFED[j++] = intRand(2)                                                  // Random remove
     }
 
     SHOWN = false
@@ -1355,11 +1380,11 @@ function newPreset()                                                            
       n = 0,
       x = 0
 
-  CRITRTYPE = PRESETS[PRESET][n++]                                              // Fetch the CRITRT type, then if...
+  CRITRTYPE = PRESETS[PRESET][n++]                                              // Fetch the CRITR type, then if...
 
-  if (CRITRTYPE == 0)                                                           // ... type0, width, height and whether limited to 2x2
+  if (CRITRTYPE == 0)                                                           // CRITRS
   {
-    LEN1  = PRESETS[PRESET][n++]
+    LEN1  = PRESETS[PRESET][n++]                                                //  ... type0, width, height and whether limited to 2x2
     LEN2  = PRESETS[PRESET][n++]
     LIMIT = PRESETS[PRESET][n++] == 1 ? true : false
 
@@ -1400,16 +1425,16 @@ function newPreset()                                                            
     SHOWN     = false
     MUTATED.f = false
   }
-  else if (CRITRTYPE == 1)
+  else if (CRITRTYPE == 1)                                                      // Life
   {
     while (x < 8)
     {
-      VLIFEB[x++ - 1] = PRESETS[PRESET][n++]
+      VLIFEB[x++ - 1] = PRESETS[PRESET][n++]                                    // Create rules
     }
 
     while (x < 16)
     {
-      VLIFED[x++ - 9] = PRESETS[PRESET][n++]
+      VLIFED[x++ - 9] = PRESETS[PRESET][n++]                                    // Remove rules
     }
 
     s = PRESETS[PRESET][n]
@@ -1436,10 +1461,10 @@ function newPreset()                                                            
   }
 }
 
-function changeMode()                                                           // Modify global variables relating to display
+function changeRes()                                                            // Modify global variables relating to display
 {
-  WIDTH  = Math.floor(MODE * MODEX)                                             // Determine window width and height
-  HEIGHT = Math.floor(MODE * MODEY)
+  WIDTH  = Math.floor(ZOOMLEV * MODEX)                                          // Determine window width and height
+  HEIGHT = Math.floor(ZOOMLEV * MODEY)
   SCALEX = BWIDTH  / WIDTH                                                      // Work out the scaling factor to enlarge by
   SCALEY = BHEIGHT / HEIGHT
 
@@ -1495,15 +1520,15 @@ function doEditmode()                                                           
   }
 }
 
-canvas.addEventListener( 'wheel', doModeChange)                                 // Wheel or touchpad scroll
-output1.addEventListener('wheel', doModeChange)
-output2.addEventListener('wheel', doModeChange)
+canvas.addEventListener( 'wheel', doZoom)                                       // Wheel or touchpad scroll
+output1.addEventListener('wheel', doZoom)
+output2.addEventListener('wheel', doZoom)
 
-function doModeChange(e)                                                        // The mouse wheel has been moved so zoom
+function doZoom(e)                                                              // The mouse wheel has been moved so zoom
 {
   const y = e.wheelDelta  ? e.wheelDelta : -e.deltaY,                           // Direction of zoom
         t = e.wheelDeltaY ? e.wheelDeltaY == -3 * e.deltaY : e.deltaMode == 0,  // Touchpad or mouse?
-        m = t ? 1.5 : 16 / QRES                                                 // Amount to zoom by (less for Touchpad or Quarter Res)
+        m = t ? 1.5 : 16 / RSLTN                                                // Amount to zoom by (less for Touchpad or Quarter Res)
 
   clearTimeout(ROTIMEOUT)                                                       // Still zooming, cancel the call to remove the offsets
 
@@ -1513,33 +1538,33 @@ function doModeChange(e)                                                        
 
   if (!EDITMODE && SHIFT )                                                      // As long as we aren't editing
   {
-    PAGEX = e.pageX / QRES                                                      // We need copies of these here...
-    PAGEY = e.pageY / QRES                                                      // ...as well as from onMousemove
+    PAGEX = e.pageX / RSLTN                                                     // We need copies of these here...
+    PAGEY = e.pageY / RSLTN                                                     // ...as well as from onMousemove
   }
 
   if (Math.sign(y) == 1)                                                        // Scroll forwards
   {
-    MODE -= MODE / MODECT * m                                                   // Zoom in, more slowly as we go
+    ZOOMLEV -= ZOOMLEV / ZOOMCT * m                                             // Zoom in, more slowly as we go
 
-    if (MODE < 1)
+    if (ZOOMLEV < 1)
     {
-      MODE = 1                                                                  // Stay in bounds
+      ZOOMLEV = 1                                                               // Stay in bounds
     }
   }
   else                                                                          // Scroll backwards
   {
-    MODE += MODE / MODECT * m                                                   // Zoom out, faster as we go
+    ZOOMLEV += ZOOMLEV / ZOOMCT * m                                             // Zoom out, faster as we go
 
-    if (MODE > MODECT)
+    if (ZOOMLEV > ZOOMCT)
     {
-      MODE = MODECT                                                             // Stay in bounds
+      ZOOMLEV = ZOOMCT                                                          // Stay in bounds
     }
   }
 
-  changeMode()                                                                  // Update the canvas variables etc
+  changeRes()                                                                   // Update the canvas variables etc
 
-  OFFSETX = ((e.pageX / QRES - canvas.offsetLeft) % SCALEX) * QRES              // Centers current pixel during
-  OFFSETY = ((e.pageY / QRES                    ) % SCALEY) * QRES              // zoom to prevent jitter}
+  OFFSETX = ((e.pageX / RSLTN - canvas.offsetLeft) % SCALEX) * RSLTN            // Centers current pixel during
+  OFFSETY = ((e.pageY / RSLTN                    ) % SCALEY) * RSLTN            // zoom to prevent jitter}
 
   if (GUIDE)
   {
@@ -1560,11 +1585,11 @@ document.body.addEventListener('mousemove', doMousemove)                        
 
 function doMousemove(e)
 {
-  if (!EDITMODE && e.pageX < (BWIDTH * QRES) &&                                 // Only accept values within the canvas
-      e.pageY < (BHEIGHT * QRES))
+  if (!EDITMODE && e.pageX < (BWIDTH * RSLTN) &&                                 // Only accept values within the canvas
+      e.pageY < (BHEIGHT * RSLTN))
   {
-    PAGEX = e.pageX / QRES
-    PAGEY = e.pageY / QRES
+    PAGEX = e.pageX / RSLTN
+    PAGEY = e.pageY / RSLTN
   }
 
   if (EDITMODE)                                                                 // If editing we are using the second pointer
@@ -1586,13 +1611,13 @@ function doMousemove(e)
 
     MOUSEX                = Math.floor(EDITX / SCALEX )                         // Set the mouse x & y
     MOUSEY                = Math.floor(EDITY / SCALEY )
-    editcursor.style.left = EDITX * QRES + 'px'                                 // And edit cursor x & y
-    editcursor.style.top  = EDITY * QRES + 'px'
+    editcursor.style.left = EDITX * RSLTN + 'px'                                // And edit cursor x & y
+    editcursor.style.top  = EDITY * RSLTN + 'px'
   }
   else
   {
-    MOUSEX = Math.floor(e.offsetX / QRES / SCALEX)                              // Locate the mouse
-    MOUSEY = Math.floor(e.offsetY / QRES / SCALEY)
+    MOUSEX = Math.floor(e.offsetX / RSLTN / SCALEX)                             // Locate the mouse
+    MOUSEY = Math.floor(e.offsetY / RSLTN / SCALEY)
   }
 
   ZOOMED = true
@@ -1629,59 +1654,59 @@ window.addEventListener('keydown', function(e)                                  
   {
     switch(SHIFT ? code + 1000 : code)                                          // Add 1000 if Shift is pressed
     {
-      case   69: setMultipass();                   break                        // E
-      case   73: trackChange();                    break                        // I
-      case   77: setMutate();                      break                        // M
-      case   85: setLimit();                       break                        // U
+      case   69: setMultipass();          break                                 // E
+      case   73: trackChange();           break                                 // I
+      case   77: setMutate();             break                                 // M
+      case   85: setLimit();              break                                 // U
       case   49: case 50: case 51:
       case   52: case 53: case 54:
       case   55: case 56: case 57:
-                 LEN1 = code - 48; changeMatrix(); break                        // 1 - 9
+        LEN1 = code - 48; changeMatrix(); break                                 // 1 - 9
       case 1049: case 1050: case 1051:
       case 1052: case 1053: case 1054:
       case 1055: case 1056: case 1057:
-                 LEN2 = code - 48; changeMatrix(); break                        // Shift 1 - 9
+        LEN2 = code - 48; changeMatrix(); break                                 // Shift 1 - 9
     }
   }
 
   switch(SHIFT ? code + 1000 : code)                                            // Add 1000 if Shift is pressed
   {
-    case   65: newPreset();                        break                        // A
-    case   67: clearWorld();                       break                        // C
-    case   68: setInfo();                          break                        // D
-    case   70: randomFilledRectangle();            break                        // F
-    case   71: setGuide();                         break                        // G
-    case   72: setHardborder();                    break                        // H
-    case   75: makeCode();                         break                        // K
-    case   76: randomLine();                       break                        // L
-    case   78: setRules();                         break                        // N
-    case   79: randomOpenRectangle();              break                        // O
-    case   80: setStep();                          break                        // P
-    case   83: STEPFLAG = false; backtoBin();      break                        // S
-    case   84: monoColor();                        break                        // T
-    case   87: writeCritrs();                      break                        // W
-    case  219: minusRes();                         break                        // [
-    case  221: plusRes();                          break                        // ]
+    case   65: newPreset();               break                                 // A
+    case   67: clearWorld();              break                                 // C
+    case   68: setInfo();                 break                                 // D
+    case   70: randomFilledRectangle();   break                                 // F
+    case   71: setGuide();                break                                 // G
+    case   72: setHardborder();           break                                 // H
+    case   75: makeCode();                break                                 // K
+    case   76: randomLine();              break                                 // L
+    case   78: setRules();                break                                 // N
+    case   79: randomOpenRectangle();     break                                 // O
+    case   80: setStep();                 break                                 // P
+    case   83: STEPFLAG = false;          break                                 // S
+    case   84: monoColor();               break                                 // T
+    case   87: writeCritrs();             break                                 // W
+    case  219: minusRes();                break                                 // [
+    case  221: plusRes();                 break                                 // ]
   }
 
   function plusRes()
   {
-    r = QRES + 1
+    r = RSLTN + 1
 
     if (r < 10)
     {
-      setQres(r)
+      setRes(r)
       SHOWN = false
     }
   }
 
   function minusRes()
   {
-    r = QRES - 1
+    r = RSLTN - 1
 
     if (r > 0)
     {
-      setQres(r)
+      setRes(r)
       SHOWN = false    }
   }
 
@@ -1730,22 +1755,24 @@ function setGuide()                                                             
   SHOWN = false
 }
 
-function setQres(r)
+function setRes(r)
 {
-  if (QRES == 1 && r != 1)
+  if (RSLTN == 1 && r != 1)
   {
     scaleDown(r)
   }
   else
   {
-    scaleUp(QRES)
-    QRES = 1
-    doResize()                                                                    // Resize the display
+    scaleUp(RSLTN)
+    RSLTN = 1
+    doResize()                                                                  // Resize the display
     scaleDown(r)
   }
 
-  QRES = r
+  RSLTN = r
   doResize()                                                                    // Resize the display
+
+  FPS = Math.floor((Math.log(RSLTN) + 1 ) * 50)
 
   FPSA.fill(FPS)                                                                // Fill FPS artray with estimated new FPS
 
@@ -1753,7 +1780,7 @@ function setQres(r)
   {
     let c, k, l, m
         j = 0
- 
+
     while (j < BWIDTH)
     {
       k = 0
@@ -1769,13 +1796,13 @@ function setQres(r)
 
           while (m < r)
           {
-            d += WORLD[j + l][k + m++]
+            d |= WORLD[j + l][k + m++]                                          // Or the multiple values to get one single value
           }
 
           l++
         }
 
-        WORLD[j / r][k / r] = d
+        WORLD[j / r][k / r] = d                                                 // Save thqat value to the reduced resolution
         k += r
       }
       j += r
@@ -1783,7 +1810,6 @@ function setQres(r)
 
     PAGEX /= r                                                                  // Modify mouse x & y copy accordingly
     PAGEY /= r
-    FPS   *= r
   }
 
   function scaleUp(r)
@@ -1798,7 +1824,7 @@ function setQres(r)
       while (k >= 0)
       {
         l = 0
-        c = WORLD[j / r][k / r]
+        c = WORLD[j / r][k / r]                                                 // Fetch the location value
 
         while (l < r)
         {
@@ -1806,7 +1832,7 @@ function setQres(r)
 
           while (m < r)
           {
-            WORLD[j + l][k + m++] = c
+            WORLD[j + l][k + m++] = c                                           // Save the value to the corresponding expanded locations
           }
           l++
         }
@@ -1817,7 +1843,6 @@ function setQres(r)
 
     PAGEX *= r                                                                  // Modify mouse x & y copy accordingly
     PAGEY *= r
-    FPS   /= r
   }
 }
 
@@ -1860,13 +1885,8 @@ function setStep()                                                              
   if (!STEP)
   {
     STEPFLAG   = false
-    SMALLCOUNT = QRES * 2
     MUTATECT   = 0
     MT         = MUTATEDELAY + 1
-  }
-  else
-  {
-    SMALLCOUNT = 1
   }
 
   SHOWN = false
@@ -1923,7 +1943,7 @@ window.addEventListener('keyup', function(e)                                    
   {
     SHIFT = false                                                               // Yes, reset the Shift setting
 
-    changeMode()
+    changeRes()
     updateTopLeft()
     drawWorld()
   }
@@ -1933,12 +1953,12 @@ window.addEventListener("resize", doResize)                                     
 
 function doResize()                                                             // If so update the canvas dimensions etc accordingly
 {
-  BWIDTH  = Math.floor(Math.min(MAXWIDTH,  window.innerWidth  - 32) / QRES),
-  BHEIGHT = Math.floor(Math.min(MAXHEIGHT, window.innerHeight - 12) / QRES),
-  MODEX   = BWIDTH  / MODECT,
-  MODEY   = BHEIGHT / MODECT,
+  BWIDTH  = Math.floor(Math.min(MAXWIDTH,  window.innerWidth  - 32) / RSLTN),
+  BHEIGHT = Math.floor(Math.min(MAXHEIGHT, window.innerHeight - 12) / RSLTN),
+  MODEX   = BWIDTH  / ZOOMCT,
+  MODEY   = BHEIGHT / ZOOMCT,
 
-  changeMode()
+  changeRes()
   setupCanvas()
 }
 
