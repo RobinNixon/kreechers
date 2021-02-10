@@ -1,6 +1,6 @@
 "use strict"                                                                    // Critrs (c) 2021 Robin Nixon
 
-const VERSION     = "0.9b02",                                                   // This version
+const VERSION     = "0.9b03",                                                   // This version
       DIDCOPY     = "The following code has been copied to the clipboard. "   + // Used if copying to the keyboard buffer succeeded...
                     "Paste it into the 'presets.js' file to save the "        +
                     "current settings as a new preset.\n\n",
@@ -12,10 +12,11 @@ const VERSION     = "0.9b02",                                                   
       MAXWIDTH    = 2600,                                                       // Should fit most monitor widths
       MAXHEIGHT   = 700                                                         // No need for more height than this
 
-let DIDPRESET  = true,                                                          // Flags that start off true
+let div        = Math.floor,                                                    // Shortened name for a frequently used function
+    DIDPRESET  = true,                                                          // Flags that start off true
     GUIDE      = true,
     DISPLAY    = true,
-    MUTATE     = false,                                                               // Flags that start off false
+    MUTATE     = false,                                                         // Flags that start off false
     SHOWN      = false,
     LIMIT      = false,
     LCLICK     = false,
@@ -29,7 +30,7 @@ let DIDPRESET  = true,                                                          
     VARYLIFE   = false,
     MULTIPASS  = false,
     STEPFLAG   = false,
-    MOUSEX     = 0,                                                               // Globals initialized to 0
+    MOUSEX     = 0,                                                             // Globals initialized to 0
     MOUSEY     = 0,
     EDITX      = 0,
     EDITY      = 0,
@@ -46,6 +47,7 @@ let DIDPRESET  = true,                                                          
     CRITRTYPE  = 0,
     GUIDERATE  = 10,
     RSLTN      = 1,                                                             // 1 = highest, 9 = lowest - start at 1 for setup...
+    CONTROL    = {},
     CANVW      = Math.min(MAXWIDTH,  window.innerWidth  - 32),
     CANVH      = Math.min(MAXHEIGHT, window.innerHeight - 12),
     BWIDTH     = CANVW,                                                         // Allow for scrollbar
@@ -69,8 +71,8 @@ let DIDPRESET  = true,                                                          
     MUTATED    = new Object(),                                                  // Details about mutations
     MT         = MUTATEDELAY + 1,                                               // Counter for mutation delays
     TIME       = new Date().getTime(),                                          // The time now
-    LENX       = Math.floor(LEN1 / 2),                                          // Half the dimensions of the matrix
-    LENY       = Math.floor(LEN2 / 2),                                          // Use for selecting the matrixes most central 2x2 section
+    LENX       = div(LEN1 / 2),                                                 // Half the dimensions of the matrix
+    LENY       = div(LEN2 / 2),                                                 // Use for selecting the matrixes most central 2x2 section
     LENX1      = LIMIT ? LENX : 0,                                              // Only used if LIMIT is true
     LENY1      = LIMIT ? LENY : 0,
     VLIFEB     = [0, 0, 1, 0, 0, 0, 0, 0],
@@ -79,11 +81,13 @@ let DIDPRESET  = true,                                                          
     CANV       = canvas,                                                        // A pointer to the canvas
     TGUIDE     = ''
 
-
 document.addEventListener("DOMContentLoaded", init)                             // Only start when ready
 
 function init()                                                                 // Prepare everything
 {
+  CONTROL.s = false
+  CONTROL.f = false
+
   setupCanvas()                                                                 // Ready the canvas
   clearWorld()                                                                  // Empty the WORLD
   setRes(5)                                                                     // Select a medium resolution
@@ -143,7 +147,7 @@ function mainLoop()                                                             
     FPSA[FPSBUFSIZE - 1] = l
   }
 
-  FPS    = Math.floor((k + l) / FPSBUFSIZE)                                     // Calculate the average
+  FPS    = div((k + l) / FPSBUFSIZE)                                            // Calculate the average
   OLDFPS = FPS                                                                  // Keep a copy for restoring after pausing
   TIME   = timenow                                                              // What's the time now?
 
@@ -151,8 +155,35 @@ function mainLoop()                                                             
 
   function editParticles()                                                      // These functions are within mainLoop() as this is
   {                                                                             // the only place they are called - keeps things clear
-    WORLD[Math.floor(MOUSEX + LEFT)][Math.floor(MOUSEY + TOP)] = LCLICK ? 1 : 0 // and the scope tidy
-                                                                                // This simply sets or restes a location
+    if (CONTROL.s)                                                              // and the scope tidy
+    {
+      if (!CONTROL.f)
+      {
+        if (LCLICK && RCLICK)
+        {
+          CONTROL.f = 3
+        }
+        else if (LCLICK)
+        {
+          CONTROL.f = 1
+        }
+        else if (RCLICK)
+        {
+          CONTROL.f = 2
+        }
+
+        CONTROL.x1 = MOUSEX + LEFT
+        CONTROL.y1 = MOUSEY + TOP
+      }
+      
+      CONTROL.x2 = MOUSEX + LEFT
+      CONTROL.y2 = MOUSEY + TOP
+    }
+    else
+    {
+      WORLD[MOUSEX + LEFT][MOUSEY + TOP] = LCLICK ? 1 : 0
+    }                                                                           // This simply sets or restes a location
+
     ifStep(0)                                                                   // Update the world etc if stepping
   }
 
@@ -175,11 +206,11 @@ function mainLoop()                                                             
 
     while (true)                                                                // Randomly select 2 swap locations for a rule
     {
-      x = intRand(LEN1)
-      y = intRand(LEN2)
-      p = LIMIT ? intRand(Math.min(LEN2, 2)) : intRand(LEN2)
-      q = LIMIT ? intRand(Math.min(LEN1, 2)) : intRand(LEN1)
-      n = intRand(2) * 2
+      x = randInt(LEN1)
+      y = randInt(LEN2)
+      p = LIMIT ? randInt(Math.min(LEN2, 2)) : randInt(LEN2)
+      q = LIMIT ? randInt(Math.min(LEN1, 2)) : randInt(LEN1)
+      n = randInt(2) * 2
 
       if (!(RULES[x][y][n    ] == p &&                                          // Keep going until they are different
             RULES[x][y][n + 1] == q))
@@ -200,8 +231,7 @@ function mainLoop()                                                             
 
   function showInfo()                                                           // The information and control panel
   {
-    let k,
-        j = 1,
+    let j, k,
         s = ''
 
     if (SHOWN)
@@ -238,8 +268,8 @@ function mainLoop()                                                             
 
       s += "<tr><td style='color:#99f'><i>Original Game of Life Rules:"       +
            "</i></td><td align=right style='color:#99f'><i><span style='"     +
-           "color:#9f9'>C = 3</span> &nbsp;/&nbsp; <span style='color:#f99'>" +
-           "R = 1, 4, 5, 6, 7, 8</span></i></th></tr>"
+           "color:#9f9'>3</span> &nbsp; &amp; &nbsp; <span style='color:"     +
+           "#f99'>1, 4, 5, 6, 7, 8&nbsp;</span></i></th></tr>"
 
       s += "<tr><td>Create new particle if any of these numbers of "          +
            "neighbors:</td><td align=right><span style='padding-right:3px; "  +
@@ -248,10 +278,10 @@ function mainLoop()                                                             
            "<div class=checknum>5</div><div class=checknum>6</div><div "      +
            "class=checknum>7</div><div class=checknum>8</div></span><br>"
 
-      while (j < 9)
+      for (j = 1 ; j < 9 ; ++j)
       {
         s += "<input type=checkbox " + (VLIFEB[j - 1] ? "checked " : "")      +
-             "onclick='VLIFEB[" + (j++ - 1) + "] ^= 1; SHOWN = false'>"
+             "onclick='VLIFEB[" + (j - 1) + "] ^= 1; SHOWN = false'>"
       }
 
       s += "</span></td></tr>"
@@ -263,12 +293,10 @@ function mainLoop()                                                             
            ">5</div><div class=checknum>6</div><div class=checknum>7</div>"   +
            "<div class=checknum>8</div></span><br>"
 
-      j = 1
-
-      while (j < 9)
+      for (j = 1 ; j < 9 ; ++j)
       {
         s += "<input type=checkbox " + (VLIFED[j - 1] ? "checked " : "")      +
-             "onclick='VLIFED [" + (j++ - 1) + "] ^= 1; SHOWN = false'>"
+             "onclick='VLIFED [" + (j - 1) + "] ^= 1; SHOWN = false'>"
       }
 
       s += "</span></td></tr>"
@@ -404,8 +432,10 @@ function mainLoop()                                                             
     }
 
     s += "<tr><td align=middle><button data-title='Draws a random line of "   +
-         "particles in the current view' onclick='randomLine()' style='width" +
-         ":100%'>Random <u>L</u>ine</button></td>"
+         "particles in the current view - you can manually draw a line any"   +
+         "where you want by holding down Ctrl, left-clicking, dragging and "  +
+         "releasing the mouse' onclick='randomLine()' style='width:100%'>"    +
+         "Random <u>L</u>ine</button></td>"
 
     if (CRITRTYPE == 0)
     {
@@ -426,12 +456,16 @@ function mainLoop()                                                             
     }
 
     s += "<tr><td align=middle><button data-title='Draws a random open "      +
-         "rectangle of particles in the current view' onclick='randomOpen"    +
-         "Rectangle()' style='width:100%'>Random <u>O</u>pen Rect.</button>"  +
-         "</td><td align=middle><button data-title='Draws a random filled "   +
-         "rectangle of particles in the current view' onclick='randomFilled"  +
-         "Rectangle()' style='width:100%'>Random <u>F</u>illed Rect." +
-         "</button></td></tr>"
+         "rectangle of particles in the current view - you can manually "     +
+         "draw an open rectangle anywhere you want by holding down Ctrl, "    +
+         "right-clicking, dragging and releasing the mouse' onclick='random"  +
+         "OpenRectangle()' style='width:100%'>Random <u>O</u>pen Rect."       +
+         "</button></td><td align=middle><button data-title='Draws a random " +
+         "filled rectangle of particles in the current view - you can "       +
+         "manually draw a filled rectangle anywhere you want by holding "     +
+         "down Ctrl and both mouse buttons, dragging and releasing the mouse" +
+         "' onclick='randomFilledRectangle()' style='width:100%'>Random "     +
+         "<u>F</u>illed Rect.</button></td></tr>"
 
     s += "<tr><td align=middle><button data-title='Loads the next ready-"     +
          "made configuration of particles and rules into the current view' "  +
@@ -625,32 +659,23 @@ function drawWorld()
         q  = SCALEY * RSLTN,
         p1 = FPS < 15 ? Math.ceil(p / 4 + .5) : p / 4 + .5,
         q1 = FPS < 15 ? Math.ceil(q / 4 + .5) : q / 4 + .5,
-        a  = FPS < 15 ? Math.floor(p + 1) : p + 1,
-        b  = FPS < 15 ? Math.floor(q + 1) : q + 1,
+        a  = FPS < 15 ? div(p + 1) : p + 1,
+        b  = FPS < 15 ? div(q + 1) : q + 1,
         bh = BHEIGHT *.8,
         bw = BWIDTH  *.8,
-        h  = Math.floor(bh - p - 2)         - OFFSETY,
-        i  = Math.floor(BWIDTH / 5 + q + 2) - OFFSETX * 1.8,
+        h  = div(bh - p - 2)         - OFFSETY,
+        i  = div(BWIDTH / 5 + q + 2) - OFFSETX * 1.8,
         wq = BWIDTH  * RSLTN,
         hq = BHEIGHT * RSLTN
 
   CONTEXT.fillStyle = '#102'                                                    // World background color
-
-  if (GUIDE)                                                                    // Clear the canvas around the guide
-  {
-    CONTEXT.fillRect(0, 0, wq, bh * RSLTN - 3)
-    CONTEXT.fillRect(wq / 5 + 3, hq *.8 - 3, bw * RSLTN, hq / 5 + 3)
-  }
-  else
-  {
-    CONTEXT.fillRect(0, 0, wq, hq)                                              // Clear the whole canvas
-  }
+  CONTEXT.fillRect(0, 0, wq, hq)                                                // Clear the canvas
 
   while (x < WIDTH)                                                             // Process through current world view, x first
   {
       y  = 0
       lx = LEFT + x
-      xp = OFFSETX + Math.floor(x * p)
+      xp = OFFSETX + div(x * p)
 
     while (y < HEIGHT)                                                          // Then y
     {
@@ -661,7 +686,7 @@ function drawWorld()
           CONTEXT.fillStyle = c = MONO ? COLORS[1] : COLORS[w % 256]            // Change color, but only if different to last time
         }
 
-        CONTEXT.fillRect(xp, OFFSETY + Math.floor(y * q), a, b)                 // Draw the particle
+        CONTEXT.fillRect(xp, OFFSETY + div(y * q), a, b)                        // Draw the particle
       }
       else if (TRACK && (w = WORLD2[lx][TOP + y]) && ++d == 8)                  // Is tracking on?
       {
@@ -672,11 +697,38 @@ function drawWorld()
           CONTEXT.fillStyle = c = '#bdf'                                        // Change color if different
         }
 
-        CONTEXT.fillRect(xp, OFFSETY + Math.floor(y * q), p1, q1)               // Yes so draw dot
+        CONTEXT.fillRect(xp, OFFSETY + div(y * q), p1, q1)                      // Yes so draw dot
       }
       y++
     }
     x++
+  }
+
+  if (CONTROL.f)
+  {
+    CONTEXT.globalCompositeOperation = 'lighter'
+    CONTEXT.setLineDash([4, 4])
+    CONTEXT.strokeStyle = '#fff'
+    CONTEXT.beginPath()
+
+    if      (CONTROL.f == 1)
+    {
+      CONTEXT.moveTo(OFFSETX + CONTROL.x1 * RSLTN,                              // Outline single line rubber band
+                     OFFSETY + CONTROL.y1 * RSLTN)
+      CONTEXT.lineTo(OFFSETX + CONTROL.x2 * RSLTN,
+                     OFFSETY + CONTROL.y2 * RSLTN)
+    }
+    else
+    {
+      CONTEXT.rect(OFFSETX +  CONTROL.x1               * RSLTN,                 // Outline rectangle rubber band
+                   OFFSETY +  CONTROL.y1               * RSLTN,
+                   OFFSETX + (CONTROL.x2 - CONTROL.x1) * RSLTN,
+                   OFFSETY + (CONTROL.y2 - CONTROL.y1) * RSLTN)
+    }
+
+    CONTEXT.stroke()
+    CONTEXT.setLineDash([])
+    CONTEXT.globalCompositeOperation = 'source-over'
   }
 
   if (CRITRTYPE == 0)
@@ -717,12 +769,12 @@ function drawSmall()                                                            
       x = 0
 
   const bh  = BHEIGHT * .8,                                                     // Calculate in advance, outside of the loops
-        h   = Math.floor(bh * RSLTN),
+        h   = div(bh * RSLTN),
         q   = RSLTN   / 5,
         q5  = RSLTN   * 5,
         lq  = LEFT    * q,
         tq  = TOP     * q,
-        mx  = PAGEX   * q,
+        mx  = PAGEX   * q - canvas.offsetLeft,
         my  = PAGEY   * q + h,
         bhq = BHEIGHT * q,
         bwq = BWIDTH  * q,
@@ -760,8 +812,8 @@ function drawSmall()                                                            
             CONTEXT.fillStyle = '#888'                                          // Outside selection
           }
 
-          CONTEXT.fillRect(Math.floor(    (x / 5) * RSLTN),                     // Draw pixels
-                           Math.floor(h + (y / 5) * RSLTN), 1, 1)
+          CONTEXT.fillRect(div(    (x / 5) * RSLTN),                            // Draw pixels
+                           div(h + (y / 5) * RSLTN), 1, 1)
         }
         y++
       }
@@ -796,7 +848,7 @@ function drawSmall()                                                            
     GUIDECT--                                                                   // Count down to the next full redraw
   }
 
-  GUIDERATE = Math.min(Math.floor(160 / Math.min(FPS, 160)), 10)                // Thew slower the FPS the less frequently the guide redraws
+  GUIDERATE = Math.min(div(160 / Math.min(FPS, 160)), 10)                       // The slower the FPS the less frequently the guide redraws
 
   if (GUIDE && !EDITMODE)                                                       // Mini mouse pointer
   {
@@ -857,23 +909,23 @@ function editCursor()                                                           
 
 function randomOpenRectangle()                                                  // Draws a random open rectangle of particles in the world
 {
-  rectangle(intRand(WIDTH), intRand(HEIGHT),
-            intRand(WIDTH), intRand(HEIGHT), RCLICK ? 0 : 1)
+  rectangle(randInt(WIDTH), randInt(HEIGHT),
+            randInt(WIDTH), randInt(HEIGHT), RCLICK ? 0 : 1)
 
   ifStep(1)
 }
 
 function randomFilledRectangle()                                                // Draws a random filled rectangle of particles in the world
 {
-  filledRectangle(intRand(WIDTH), intRand(HEIGHT),
-                  intRand(WIDTH), intRand(HEIGHT), RCLICK ? 0 : 1)
+  filledRectangle(randInt(WIDTH), randInt(HEIGHT),
+                  randInt(WIDTH), randInt(HEIGHT), RCLICK ? 0 : 1)
   ifStep(1)
 }
 
 function randomLine()                                                           // Draws a random line of particles in the world
 {
-  line(intRand(WIDTH), intRand(HEIGHT),
-       intRand(WIDTH), intRand(HEIGHT), RCLICK ? 0 : 1)
+  line(randInt(WIDTH), randInt(HEIGHT),
+       randInt(WIDTH), randInt(HEIGHT), RCLICK ? 0 : 1)
 
   ifStep(1)
 }
@@ -943,7 +995,7 @@ function makeCode()                                                             
 
   if (CRITRTYPE == 0)                                                           // ...type 0 is CRITRS
   {
-    c += LEN1 + ','  + LEN2 + ',' + Math.sign(LIMIT)  + ','                     // the width and height of the rule matrix
+    c += LEN1 + ','  + LEN2 + ',' + Math.sign(LIMIT) + ','                     // the width and height of the rule matrix
                                                                                 // And whether rules are limited to a 2x2 section
     for (x = 0 ; x < LEN1 ; ++x)                                                // Extracts the rule set into c
       for (y = 0 ; y < LEN2 ; ++y)
@@ -953,10 +1005,10 @@ function makeCode()                                                             
   else if (CRITRTYPE == 1)                                                      // Type 1 is Life
   {
     for (j = 0 ; j < 8 ; ++j)
-      c += (VLIFEB[j] ? '1' : '0') + ','                                    // The create rules
+      c += (VLIFEB[j] ? '1' : '0') + ','                                        // The create rules
 
     for (j = 0 ; j < 8 ; ++j)
-      c += (VLIFED[j] ? '1' : '0') + ','                                    // The remove rules
+      c += (VLIFED[j] ? '1' : '0') + ','                                        // The remove rules
   }
 
   c += BWIDTH.toString()  + ',' +                                               // Canvas width and height
@@ -964,7 +1016,7 @@ function makeCode()                                                             
 
   for (j = 0 ; j < BWIDTH ; ++j)                                                // Convert WORLD to string of integers
     for (k = 0 ; k < BHEIGHT ; ++k)
-      o += Math.floor(WORLD[j][k]).toString().padStart(3, '0')
+      o += div(WORLD[j][k]).toString().padStart(3, '0')
 
   copyText(c + o.compress() + "'],\n")                                          // Copies the compressed preset to the keyboard buffer
 }
@@ -974,7 +1026,7 @@ function decodeWorld(s, w, h)                                                   
   let d, l, x, y, z,
       j = 0
 
-  setRes(Math.floor(CANVW / w))                                                 // Make the resolution just big enough for the content
+  setRes(div(CANVW / w))                                                        // Make the resolution just big enough for the content
 
   SHOWN = false
   d     = s.decompress()
@@ -1053,7 +1105,7 @@ function playLife()                                                             
 function updateControls()                                                       // Just update the info section each frame
 {
   const n  = LEN1 * LEN2,
-        mt = Math.floor(15.9 - MUTATECT / FPS),
+        mt = div(15.9 - MUTATECT / FPS),
         p  = PRESET == 0 ? PRESETS.length : PRESET,
         q  = (PRESET == PRESETS.length - 1) ?
                         PRESETS.length : (PRESET + 1) % PRESETS.length,
@@ -1092,8 +1144,8 @@ function showRules()                                                            
     return
   }
 
-  const l1 = Math.floor(LEN1 / 2),
-        l2 = Math.floor(LEN2 / 2)
+  const l1 = div(LEN1 / 2),
+        l2 = div(LEN2 / 2)
 
   for (y = 0, s = "<table id=matrix style='border:1px " +
     "solid #00f;background:#004;opacity:80%'>" ; y < LEN2 ; ++y, s += '</tr>')
@@ -1173,46 +1225,31 @@ function setRule(x, y, p, q, r, s)                                              
 
 function setRules()                                                             // Sets a random set of rules
 {
-  let y, z,
-      j = 0,
-      x = 0
+  let j, x, y, z
 
   if (CRITRTYPE == 1)                                                           // Life
   {
-    while (j < 8)
+    for (j = 0 ; j < 8 ; ++j)
     {
-      VLIFEB[j  ] = intRand(2)                                                  // Random create
-      VLIFED[j++] = intRand(2)                                                  // Random remove
+      VLIFEB[j] = randInt(2)                                                    // Random create
+      VLIFED[j] = randInt(2)                                                    // Random remove
     }
 
     SHOWN = false
     return
   }
 
-  LENX  = Math.floor(LEN1 / 2)                                                  // Half the dimensions of the matrix
-  LENY  = Math.floor(LEN2 / 2)                                                  // Use for selecting the matrixes most central 2x2 section
+  LENX  = div(LEN1 / 2)                                                         // Half the dimensions of the matrix
+  LENY  = div(LEN2 / 2)                                                         // Use for selecting the matrixes most central 2x2 section
   LENX1 = LIMIT ? LENX : 0                                                      // Only applied if LIMIT is true
   LENY1 = LIMIT ? LENY : 0
 
-  while (x < LEN1)
-  {
-    y = 0
-
-    while (y < LEN2)
-    {
-      z = 0
-
-      while (z < 2)
-      {
-        setRule(x, y, (LIMIT ? intRand(Math.min(LEN2, 2)) : intRand(LEN2)),
-                      (LIMIT ? intRand(Math.min(LEN1, 2)) : intRand(LEN1)),
-                        z++ * 2, 0)
-      }
-      y++
-    }
-    x++
-  }
-
+  for (x = 0 ; x < LEN1 ; ++x)
+    for (y = 0 ; y < LEN2 ; ++y)
+      for (z = 0 ; z < 2 ; ++z)
+        setRule(x, y, (LIMIT ? randInt(Math.min(LEN2, 2)) : randInt(LEN2)),
+                      (LIMIT ? randInt(Math.min(LEN1, 2)) : randInt(LEN1)),
+                        z * 2, 0)
   MUTATED.f = false
   STEPFLAG  = false
   DIDPRESET = false
@@ -1222,15 +1259,15 @@ function setRules()                                                             
 
 function writeCritrs()                                                          // Draw app name
 {
-  const t = Math.floor(HEIGHT / 5),                                             // Top line
-        m = Math.floor(HEIGHT / 2),                                             // Middle line
-        a = Math.floor((m - t) / 2),                                            // Quarter character height
+  const t = div(HEIGHT / 5),                                                    // Top line
+        m = div(HEIGHT / 2),                                                    // Middle line
+        a = div((m - t) / 2),                                                   // Quarter character height
         b = t * 4,                                                              // Bottom line
-        d = Math.floor((WIDTH / 1.5) / 5),                                      // Character spacing
-        w = Math.floor(d / 2),                                                  // Character width
-        h = Math.floor(t + a),                                                  // Halfway between top and middle
-        j = Math.floor(m + a),                                                  // Halfway between middle and bottom
-        C = Math.floor(WIDTH / 7),                                              // Horizontal placement of C
+        d = div((WIDTH / 1.5) / 5),                                             // Character spacing
+        w = div(d / 2),                                                         // Character width
+        h = div(t + a),                                                         // Halfway between top and middle
+        j = div(m + a),                                                         // Halfway between middle and bottom
+        C = div(WIDTH / 7),                                                     // Horizontal placement of C
         r = C + d,                                                              // Horizontal placement of r
         i = r + d,                                                              // Horizontal placement of i
         T = i + d,                                                              // Horizontal placement of t
@@ -1295,7 +1332,7 @@ function newPreset()                                                            
   s = PRESETS[PRESET][n++]
 
   clearWorld()
-    
+
   if (s != '')
   {
     decodeWorld(s, w, h)
@@ -1305,7 +1342,7 @@ function newPreset()                                                            
     writeCritrs()
   }
 
-  MUTATECT  = 0                                                               // Reset mutation (if enabled)
+  MUTATECT  = 0                                                                 // Reset mutation (if enabled)
   DIDPRESET = true
   MT        = 16
   SHOWN     = false
@@ -1319,20 +1356,20 @@ function newPreset()                                                            
 
 function changeRes()                                                            // Modify global variables relating to display
 {
-  WIDTH  = Math.floor(ZOOMLEV * MODEX)                                          // Determine window width and height
-  HEIGHT = Math.floor(ZOOMLEV * MODEY)
-  SCALEX = BWIDTH  / WIDTH                                                      // Work out the scaling factor to enlarge by
-  SCALEY = BHEIGHT / HEIGHT
+  WIDTH  = div(ZOOMLEV * MODEX)                                                 // Determine window width and height
+  HEIGHT = div(ZOOMLEV * MODEY)
+  SCALEX = BWIDTH  / (ZOOMLEV * MODEX)                                          // Work out the scaling factor to enlarge by
+  SCALEY = BHEIGHT / (ZOOMLEV * MODEY)
 
   updateTopLeft()
 }
 
 function updateTopLeft()                                                        // Calculate TOP and LEFT of window
 {
-  const dl = BWIDTH  - WIDTH,
-        dt = BHEIGHT - HEIGHT,
-        sx = Math.floor((PAGEX - canvas.offsetLeft) * (dl / BWIDTH)),
-        sy = Math.floor((PAGEY - canvas.offsetTop)  * (dt / BHEIGHT))
+  let dl = BWIDTH  - WIDTH,
+      dt = BHEIGHT - HEIGHT,
+      sx = div((PAGEX - canvas.offsetLeft) * (dl / BWIDTH)),
+      sy = div((PAGEY - canvas.offsetTop)  * (dt / BHEIGHT))
 
   LEFT = sx >= dl ? dl : (sx < 0) ? 0 : sx
   TOP  = sy >= dt ? dt : (sy < 0) ? 0 : sy
@@ -1356,7 +1393,7 @@ function doMousedown(e)
   {
     RCLICK = true                                                               // Right button pressed
   }
-
+  
   doMousemove(e)                                                                // Get latest mouse X/Y so the click registers correctly
 
   e.stopPropagation()                                                           // Don't pass event to system
@@ -1444,7 +1481,7 @@ function doMousemove(e)
   if (!EDITMODE && e.pageX < (BWIDTH  * RSLTN) &&                               // Only accept values within the canvas
                    e.pageY < (BHEIGHT * RSLTN))
   {
-    PAGEX = e.pageX / RSLTN
+    PAGEX = e.pageX / RSLTN + canvas.offsetLeft - 2
     PAGEY = e.pageY / RSLTN
   }
 
@@ -1465,15 +1502,15 @@ function doMousemove(e)
       EDITY += e.movementY
     }
 
-    MOUSEX                = Math.floor(EDITX / SCALEX )                         // Set the mouse x & y
-    MOUSEY                = Math.floor(EDITY / SCALEY )
+    MOUSEX                = div(EDITX / SCALEX )                                // Set the mouse x & y
+    MOUSEY                = div(EDITY / SCALEY )
     editcursor.style.left = EDITX * RSLTN + 'px'                                // And edit cursor x & y
     editcursor.style.top  = EDITY * RSLTN + 'px'
   }
   else
   {
-    MOUSEX = Math.floor(e.offsetX / RSLTN / SCALEX)                             // Locate the mouse
-    MOUSEY = Math.floor(e.offsetY / RSLTN / SCALEY)
+    MOUSEX = div(e.offsetX / RSLTN / SCALEX)                                    // Locate the mouse
+    MOUSEY = div(e.offsetY / RSLTN / SCALEY)
   }
 
   updateTopLeft()                                                               // AFter zooming the top left will have changed
@@ -1481,6 +1518,28 @@ function doMousemove(e)
 
 canvas.addEventListener('mouseup', e =>                                         // The mouse button is up
 {
+  if (CONTROL.s)
+  {
+    if      (CONTROL.f == 1)
+    {
+      line(div(CONTROL.x1 / SCALEX), div(CONTROL.y1 / SCALEX),
+           div(CONTROL.x2 / SCALEY), div(CONTROL.y2 / SCALEY))
+    }
+    else if (CONTROL.f == 2)
+    {
+      rectangle(div(CONTROL.x1 / SCALEX), div(CONTROL.y1 / SCALEX),
+                div(CONTROL.x2 / SCALEY), div(CONTROL.y2 / SCALEY))
+    }
+    else if (CONTROL.f == 3)
+    {
+      filledRectangle(div(CONTROL.x1 / SCALEX), div(CONTROL.y1 / SCALEX),
+                      div(CONTROL.x2 / SCALEY), div(CONTROL.y2 / SCALEY))
+    }
+
+    CONTROL.s = false
+    CONTROL.f = false
+  }
+    
   LCLICK = RCLICK = false                                                       // Reset flags
 })
 
@@ -1496,6 +1555,11 @@ window.addEventListener('keydown', function(e)                                  
   if (e.shiftKey)
   {
     SHIFT = true                                                                // Shift's state is needed in a few places
+  }
+
+  if (e.ctrlKey)
+  {
+    CONTROL.s = true                                                              // Control is used for rectangle rubnber banding
   }
 
   if (EDITMODE)
@@ -1569,7 +1633,7 @@ window.addEventListener('keydown', function(e)                                  
     setRules()
     showRules()
 
-    DIDPRESET =
+    DIDPRESET = false
     SHOWN     = false
   }
 })
@@ -1626,41 +1690,19 @@ function setRes(r)
   RSLTN = r
   doResize()                                                                    // Resize the display
 
-  FPS = Math.floor((Math.log(RSLTN) + 1 ) * 50)
+  FPS = div((Math.log(RSLTN) + 1 ) * 50)
 
   FPSA.fill(FPS)                                                                // Fill FPS artray with estimated new FPS
 
   function scaleDown(r)
   {
-    let c, d, k, l, m,
-        j = 0
+    let c, d, j, k, l, m
 
-    while (j < BWIDTH)
-    {
-      k = 0
-
-      while (k < BHEIGHT)
-      {
-        l = 0
-        d = 0
-
-        while (l < r)
-        {
-          m = 0
-
-          while (m < r)
-          {
-            d |= WORLD[j + l][k + m++]                                          // Or the multiple values to get one single value
-          }
-
-          l++
-        }
-
-        WORLD[j / r][k / r] = d                                                 // Save thqat value to the reduced resolution
-        k += r
-      }
-      j += r
-    }
+    for (j = 0 ; j < BWIDTH ; ++j)
+      for (k = 0 ; k < BHEIGHT ; ++k, WORLD[div(j / r)][div(k / r)] = d)
+        for (l = 0, d = 0 ; l < r ; ++l)
+          for (m = 0 ; m < r ; ++m)
+            d |= WORLD[j + l][k + m]                                            // Or the multiple values to get one single value
 
     PAGEX /= r                                                                  // Modify mouse x & y copy accordingly
     PAGEY /= r
@@ -1668,32 +1710,13 @@ function setRes(r)
 
   function scaleUp(r)
   {
-    let c, k, l, m,
-        j = BWIDTH * r - r
+    let c, j, k, l, m
 
-    while (j >= 0)
-    {
-      k = BHEIGHT * r - r
-
-      while (k >= 0)
-      {
-        l = 0
-        c = WORLD[j / r][k / r]                                                 // Fetch the location value
-
-        while (l < r)
-        {
-          m = 0
-
-          while (m < r)
-          {
-            WORLD[j + l][k + m++] = c                                           // Save the value to the corresponding expanded locations
-          }
-          l++
-        }
-        k -= r
-      }
-      j -= r
-    }
+    for (j = BWIDTH * r - r ; j >= 0 ; j -= r)
+      for (k = BHEIGHT * r - r ; k >= 0 ; k -= r)
+        for (l = 0, c = WORLD[div(j / r)][div(k / r)] ; l < r ; ++l)
+          for (m = 0 ; m < r ; ++m)
+            WORLD[j + l][k + m] = c                                             // Save the value to the corresponding expanded locations
 
     PAGEX *= r                                                                  // Modify mouse x & y copy accordingly
     PAGEY *= r
@@ -1720,7 +1743,7 @@ function setLimit()                                                             
 function setMutate()                                                            // Switch between mutating and not
 {
   MUTATE    = !MUTATE
-  DIDPRESET=  false
+  DIDPRESET = false
 
   if (!MUTATE)
   {
@@ -1738,9 +1761,9 @@ function setStep()                                                              
 
   if (!STEP)
   {
-    STEPFLAG   = false
-    MUTATECT   = 0
-    MT         = MUTATEDELAY + 1
+    STEPFLAG = false
+    MUTATECT = 0
+    MT       = MUTATEDELAY + 1
   }
 
   SHOWN = false
@@ -1776,11 +1799,12 @@ function lockChanged()                                                          
   if(document.pointerLockElement === canvas||
   document.mozPointerLockElement === canvas)
   {
-    EDITMODE                 = true
-    EDITX                    = PAGEX - container.offsetLeft
-    EDITY                    = PAGEY - container.offsetTop - canvas.offsetTop
-    editcursor.style.left    = EDITX + 'px'
-    editcursor.style.top     = EDITY + 'px'
+    EDITMODE = true
+    EDITX    = 6 + PAGEX - container.offsetLeft                                 // Why 6? Not sure yet...
+    EDITY    = 6 + PAGEY - container.offsetTop
+                         - canvas.offsetTop
+    editcursor.style.left = EDITX + 'px'
+    editcursor.style.top  = EDITY + 'px'
   }
   else                                                                          // No, they exited edit mode, so restore main cursor
   {
@@ -1809,8 +1833,8 @@ function doResize()                                                             
 {
   CANVW   = Math.min(MAXWIDTH,  window.innerWidth  - 32),                       // The width and height of the canvas may have
   CANVH   = Math.min(MAXHEIGHT, window.innerHeight - 12),                       // changed after a resize
-  BWIDTH  = Math.floor(CANVW / RSLTN),
-  BHEIGHT = Math.floor(CANVH / RSLTN),
+  BWIDTH  = div(CANVW / RSLTN),
+  BHEIGHT = div(CANVH / RSLTN),
   MODEX   = BWIDTH  / ZOOMCT,
   MODEY   = BHEIGHT / ZOOMCT,
 
@@ -1818,9 +1842,9 @@ function doResize()                                                             
   setupCanvas()
 }
 
-function intRand(n)                                                             // Returns a random integer between 0 and n
+function randInt(n)                                                             // Returns a random integer between 0 and n
 {
-  return Math.floor(Math.random() * n)
+  return div(Math.random() * n)
 }
 
 function createArray(length)                                                    // Creates an array of any number of dimensions
@@ -1845,14 +1869,14 @@ function createArray(length)                                                    
 String.prototype.compress = function(asArray)                                   // By Bruce Thomas
 {                                                                               // https://gist.github.com/fliptopbox
   asArray = (asArray === true)
-  
-	var c, i, wc,
-		dictionary   = {},
-		uncompressed = this,
-		w            = "",
-		result       = [],
-		ASCII        = '',
-		dictSize     = 256
+
+	let c, i, wc,
+		  dictionary   = {},
+		  uncompressed = this,
+		  w            = "",
+		  result       = [],
+		  ASCII        = '',
+		  dictSize     = 256
 
 	for (i = 0; i < 256; ++i)
   {
@@ -1889,7 +1913,7 @@ String.prototype.compress = function(asArray)                                   
 
 String.prototype.decompress = function()
 {
-	var i, k, result, w,
+	let i, k, result, w,
       tmp        = [],
       dictionary = [],
       compressed = this,
@@ -1940,6 +1964,6 @@ String.prototype.decompress = function()
 
 		w = entry
 	}
-  
+
 	return result
 }
