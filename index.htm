@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<!-- Kreechers (c) Robin Nixon 2021 -->
+<html>
+  <head>
+    <title>Kreechers: Cellular Automata Playground</title>
+    <meta charset="UTF-8">
+    <meta name="description" content="Kreechers is a new type of cellular automata quite different to the 1970s game of life, in which cells are swapped according to rules based on the cell contents, rather than created and deleted. The results are staggeringly complex, fascinating and beautiful. Currently only for desktop PCs.">
+    <link rel='stylesheet' href='kreechers.css'>
+    <script>const VERSION = "1.01a"</script>
+
+  </head>
+  <body>
+    <div id='container'>
+      <canvas id='canvas' width='100%' height='702' style='opacity:0%'></canvas>
+
+      <div class='about'>
+
+        <h3>Kreechers: Cellular Automata Playground</h3>
+
+        <h4><i>It's life <sup>*</sup>John, but not as we know it</i></h4>
+
+        <p>"So," you may be asking, "what's all this then, just another ver&shy;sion of <sup>*</sup><a href='https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life' target='_new'>John Conway's Life</a>?". An under&shy;stand&shy;able ques&shy;tion, but the answer is no, it's actually something quite different and new, and also sort of yes, in that it's all about ones and zeros in a binary 2D world, so it may remind you of the original <a href='https://playgameoflife.com' target= '_new'>Life</a> program from 1970.</p>
+
+        <p>To under&shy;stand the diff&shy;erence between Kreechers and the Game of Life, and to explain what's going on, let's quickly recap on how the original program works. The idea is that the Game of Life takes place on a two-dimen&shy;sional world, much like graph paper. In fact, it used to be played on graph paper before pro&shy;grams were written to run it.</p>
+
+        <table class='life' title='A 3 by 3 matrix for playing Life - the central sqaure will be filled as it has three neighbors'>
+          <tr>
+            <th colspan='3'>Figure 1</th>
+          </tr>
+          <tr>
+            <td>&EmptySmallSquare;</td><td>&EmptySmallSquare;</td><td>&FilledSmallSquare;</td>
+          </tr>
+            <td>&FilledSmallSquare;</td><td>&EmptySmallSquare;</td><td>&EmptySmallSquare;</td>
+          </tr>
+            <td>&EmptySmallSquare;</td><td>&FilledSmallSquare;</td><td>&EmptySmallSquare;</td>
+          </tr>
+        </table>
+        <p>There are two simple rules to follow, from which a tremen&shy;dous number of unex&shy;pected results can occur. These rules are:</p>
+
+        <ol>
+          <li>If a square is empty but exactly three of its neigh&shy;bors (on the edges and diag&shy;onals) are full (see <i>Figure 1</i>), then the square is filled (emul&shy;ating giving birth).</li><br>
+          <li>If a square is filled, but there are either fewer than two or more than three filled neigh&shy;boring squares (as in <i>Figure 2</i>) then the square becomes empty, emu&shy;lating death</li>
+        </ol>
+
+        <p>There is, as it happens, a sort of third rule, which isn't really a rule because it simply states that if none of the above is true then no change occurs to the square.</p>
+
+        <table class='life' title='The central square will die due to overpopulation'>
+          <tr>
+            <th colspan='3'>Figure 2</th>
+          </tr>
+          <tr>
+            <td>&FilledSmallSquare;</td><td>&EmptySmallSquare;</td><td>&FilledSmallSquare;</td>
+          </tr>
+            <td>&FilledSmallSquare;</td><td>&FilledSmallSquare;</td><td>&EmptySmallSquare;</td>
+          </tr>
+            <td>&FilledSmallSquare;</td><td>&EmptySmallSquare;</td><td>&FilledSmallSquare;</td>
+          </tr>
+        </table>
+
+        <p>Each square in turn on the graph paper (or in an array in a computer, which can be as large as you like) is then proces&shy;sed in this way until a sheet is comp&shy;leted. Then  the whole process starts all over again at the first square, and contin&shy;ues ad-infin&shy;itum.</p>
+
+        <p>"Simple enough," you might think, if you've never come across the game before, but the results of care&shy;fully placing a few init&shy;ially filled squares can be stagger&shy;ingly complex. In fact, it has been proven that The Game of Life is 100% Turing complete, which means that it has the capa&shy;bility to perform any compu&shy;tations that a regular computer can, and there are even config&shy;urations of the game which recurs&shy;ively simulate the game itself, thus neatly proving the point!</p>
+
+        <p>You can also play the Game of Life in Kreechers (and in color too!) by pres&shy;sing the button in the panel. After a while you will notice how many config&shy;urat&shy;ions wind up with a stable pattern, and others even result in total wipeout. With care&shy;fully placed initial cells, how&shy;ever, you can achieve quite inter&shy;esting results.</p>
+
+        <table class='life' style='font-size:100px; line-height:20px' title='Kreechers flying and crawling'>
+          <tr>
+            <th>Figure 3</th>
+          </tr>
+          <tr>
+            <td>
+              <img src='kreechers3.png'>
+            </td>
+          </tr>
+        </table>
+
+        <p>More than that, instead of the standard rules of Life, you can try any of the 256<sup>2</sup> other rules too, many of which create stunning mosaics, crystalline shapes and colonies, as shown in Figure 3.</p>
+
+        <p>Inci&shy;den&shy;tally, the colors (which you don't often see in the Game of Life) were chosen to slowly cycle according to how old the particles are, star&shy;ting over again if a par&shy;ticle dies and is rep&shy;laced by a new one.</p>
+
+     </div>
+      <hr width='100%'>
+      <div class='about'>
+
+        <h3>How Kreechers Works</h3>
+
+        <h4><i>Under the hood</i></h4>
+
+        <p>The main thing about Kreechers is that there is no birth or death, and there&shy;fore the total number of filled locat&shy;ions always remains the same, unless you add or remove any using the mouse or buttons prov&shy;ided. Instead, movement and change occur by swapping the contents of locat&shy;ions accor&shy;ding to sets of rules.</p>
+
+        <p>So let's start off with the same piece of graph paper used for Life, but then choose any sized matrix from 1&times;1 to 9&times;9. The mathe&shy;matics allows for any sized matrix, but for reasons of practi&shy;cality and the speed of current com&shy;puters, 9 has been chosen as the maximum for this program.</p>
+
+        <table class='life' title='A CRITR matrix with a filled location at the bottom-left'>
+          <tr>
+            <th colspan='3'>Figure 4</th>
+          </tr>
+          <tr>
+            <td>&EmptySmallSquare;</td><td>&EmptySmallSquare;</td>
+          </tr>
+            <td>&FilledSmallSquare;</td><td>&EmptySmallSquare;</td>
+          </tr>
+        </table>
+
+        <p>Now, pass the matrix across the graph paper one positon at a time and apply a set of swap rules based on whether or not a cell under the matrix is filled. Let's take the case of using a 2&times;2 matrix to process the graph paper. As shown in <i>Figure 4</i>, there are four locations to examine. For each cell in the matrix a swap rule is applied if the square under the cell is filled. In the case of this figure, only the bottom-left location is filled.</p>
+
+        <p>In a 2&times;2 matrix there are 7 possible swap rules that can be applied, which are:</p>
+
+        <ol>
+          <li>Don't do anything</li>
+          <li>Swap Top-Left and Top-Right</li>
+          <li>Swap Top-Left and Bottom Left</li>
+          <li>Swap Top-Left and Bottom-Right</li>
+          <li>Swap Top-Right and Bottom-Left</li>
+          <li>Swap Top-Right and Bottom-Right</li>
+          <li>Swap Bottom-Left and Bottom-Right</li>
+        </ol>
+
+        <table class='lifesm' title='A Kreechers rules matrix'><tbody><tr><th colspan=2>Figure 5</th></tr><tr><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,0,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,0,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,0,1,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,0,1,1,0,2)">◻</div></td></tr></tbody></table></td><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,0,0,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,0,0,1,0,2)">◻</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,0,1,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,0,1,1,0,2)">◻</div></td></tr></tbody></table></td></tr><tr><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,1,0,0,2,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,1,0,1,0,2)">◻</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,1,1,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,1,1,1,2,2)">◼</div></td></tr></tbody></table></td><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,1,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,1,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,1,1,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,1,1,1,0,2)">◻</div></td></tr></tbody></table></td></tr></tbody></table>
+
+        <p>Looking at the program running at the top of this page, you can see such a 2&times;2 matrix at the top-left of the window, and in it there are some filled and empty squares. The filled squares re&shy;pre&shy;sent the swaps to be made if a cell under one of the four posit&shy;ions is filled. If only a single cell is shown in the matrix then the location is swapped with itself, which means nothing happens and this is how swap rule 1, "Don't do anything", works.</p>
+
+        <p>So, in the case of the default 2&times;2 rules, when this page first loads the rule matrix looks like <i>Figure 5</i>. Taking the data from <i>Figure 4</i> of just the single bottom-left location being filled, we then look at the rule matrix and see that the bottom-left rule is to swap the top-left and bottom-right locations.</p>
+
+        <table class='life' title='A Kreechers matrix over two filled locations'>
+          <tr>
+            <th colspan='3'>Figure 6</th>
+          </tr>
+          <tr>
+            <td>&FilledSmallSquare;</td><td>&EmptySmallSquare;</td>
+          </tr>
+            <td>&FilledSmallSquare;</td><td>&EmptySmallSquare;</td>
+          </tr>
+        </table>
+
+        <p>In this part&shy;icular case, however, the swap will have no effect because the top-left and bottom-right loca&shy;tions are both the same (empty), and so there will be no noticable change (in fact the program knows this and just does nothing). However, should <i>Figure 5</i> contain locations in the config&shy;uration of <i>Figure 6</i>, in which the top-left location is also filled, then the swap rule would end up making <i>Figure 6</i> look like <i>Figure 7</i>, once the swap has been per&shy;formed.</p>
+
+        <table class='life' title='The result of applying the rules to Figure 6'>
+          <tr>
+            <th colspan='3'>Figure 7</th>
+          </tr>
+          <tr>
+            <td>&EmptySmallSquare;</td><td>&EmptySmallSquare;</td>
+          </tr>
+            <td>&FilledSmallSquare;</td><td>&FilledSmallSquare;</td>
+          </tr>
+        </table>
+
+        <p>So, unlike Life, in which the two rules are fixed, in Kreechers the rules depend on which locations are already filled and, by swapping them around, the rules to be ap&shy;plied cons&shy;tantly change. More than that, you can choose between the seven diff&shy;erent rules for each cell position in a 2&times;2 matrix, giving you 7&times;7&times;7&times;7 (7<sup>4</sup>), or a total of 2,401 diff&shy;erent possible combin&shy;ations of rules. So already there are over a couple of thou&shy;sand vari&shy;ations of the 2&times;2 version of Kreechers, which makes for some very inter&shy;esting and varied results.</p>
+
+        <p>But this is just the beginning, because you can extend the size of the rule matrix in a multitude of diff&shy;erent ways to get even more results and, if you choose a 9&times;9 matrix, for example, there are more than 10<sup>284</sup> possible combin&shy;ations  &ndash; several orders of magitude greater than the total number of atoms in the Universe!<p>
+
+      </div>
+      <hr width='100%'>
+      <div class='about'>
+
+        <h3>But wait, there's more!</h3>
+
+        <h4><i>Not only, but also...</i></h4>
+
+        <table class='lifesm' title='A 4 by 4 Kreechers rule matrix applied to the central 2 by 2 cells'><tbody><tr><th colspan=4>Figure 8</th></tr><tr><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,0,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,0,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,0,1,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,0,1,1,0,2)">◻</div></td></tr></tbody></table></td><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,0,0,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,0,0,1,0,2)">◻</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,0,1,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,0,1,1,2,2)">◼</div></td></tr></tbody></table></td><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,0,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,0,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,0,1,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,0,1,1,2,2)">◼</div></td></tr></tbody></table></td><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,0,0,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,0,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,0,1,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,0,1,1,0,2)">◻</div></td></tr></tbody></table></td></tr><tr><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,1,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,1,0,1,0,2)">◻</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,1,1,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,1,1,1,2,2)">◼</div></td></tr></tbody></table></td><td align="center"><table bgcolor="#f00"><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,1,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,1,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,1,1,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,1,1,1,0,2)">◻</div></td></tr></tbody></table></td><td align="center"><table bgcolor="#f00"><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,1,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,1,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,1,1,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,1,1,1,0,2)">◻</div></td></tr></tbody></table></td><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,1,0,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,1,0,1,0,2)">◻</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,1,1,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,1,1,1,0,2)">◻</div></td></tr></tbody></table></td></tr><tr><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,2,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,2,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,2,1,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,2,1,1,0,2)">◻</div></td></tr></tbody></table></td><td align="center"><table bgcolor="#f00"><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,2,0,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,2,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,2,1,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,2,1,1,0,2)">◻</div></td></tr></tbody></table></td><td align="center"><table bgcolor="#f00"><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,2,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,2,0,1,0,2)">◻</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,2,1,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,2,1,1,2,2)">◼</div></td></tr></tbody></table></td><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,2,0,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,2,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,2,1,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,2,1,1,0,2)">◻</div></td></tr></tbody></table></td></tr><tr><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,3,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,3,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,3,1,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(0,3,1,1,0,2)">◻</div></td></tr></tbody></table></td><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,3,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,3,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,3,1,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(1,3,1,1,0,2)">◻</div></td></tr></tbody></table></td><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,3,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,3,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,3,1,0,2,2)">◼</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(2,3,1,1,0,2)">◻</div></td></tr></tbody></table></td><td align="center"><table><tbody><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,3,0,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,3,0,1,2,2)">◼</div></td></tr><tr><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,3,1,0,0,2)">◻</div></td><td width="15" height="15" align="center" valign="middle"><div onclick="setRule(3,3,1,1,2,2)">◼</div></td></tr></tbody></table></td></tr></tbody></table>
+
+        <p>With matrixes larger than 2&times;2 the rules allow for swapping any of the cells under the matrix (not just a 2&times;2 section), even up to 81 of them under a 9&times;9 matrix. There is, how&shy;ever, an issue when the matrix gets large, in that due to the enor&shy;mous num&shy;ber of pos&shy;sible rule sets, huge num&shy;bers of them are (to us) quite un&shy;in&shy;ter&shy;est&shy;ing and res&shy;emble chaos. They are not cha&shy;otic, in fact, but are just too comp&shy;lex for us to vis&shy;ually take in.</p>
+
+        <p>So, to help us mortal humans under&shy;stand the larger matrix&shy;es, I have added a switch with which you can limit the action of each of the rules in a matrix to just those swaps sup&shy;ported in a basic 2&times;2 matrix, as in <i>Figure 8</i>, where you can see the squares repre&shy;senting the locations under the matrix where the rules will be applied are shown in red.</p>
+
+        <p>These rules are applied to the four cells nearest to the center (of course it could have been any set of four cells, so I just opted for the middle), underneath the matrix. Even then, with a 9&times;9 matrix you still have more than 10<sup>68</sup> pos&shy;sible comb&shy;ina&shy;tions (per&shy;haps just shy of the number of atoms in the Uni&shy;verse), but many, many more of them show some sort of pattern or be&shy;hav&shy;iour we can under&shy;stand.</p>
+
+        <table class='life' style='font-size:100px; line-height:20px' title='Kreechers flying and crawling'>
+          <tr>
+            <th>Figure 9</th>
+          </tr>
+          <tr>
+            <td>
+              <img src='kreechers1.png'>
+            </td>
+          </tr>
+        </table>
+
+        <p>To get started with this program, perhaps you may wish to click the [Apply Next Preset] button (or press 'A') now and then, and watch the results of simply writing the word 'Kreechers' into the world's empty loca&shy;tions. Note that the presets load into the current zoom level, so you will see dif&shy;ferent results depen&shy;ding on how far you are zoomed in or out. You will soon see many types of gliders and flyers (as in <i>Figure 9</i>), complex line crawlers (see <i>Figure 10</i>), and much more.</p>
+
+        <p>For example, try zooming in and out, as well as changing the matrix sizes, and turn on the mutation feature to auto&shy;matic&shy;ally make one rule change in a rule set every 15 seconds (be patient though, some changes are very subtle). When mutation is on, the top-left matrix will high&shy;light the most recent rule change.</p>
+
+        <p>You can directly change single rules in a matrix by click&shy;ing (and double-clicking) the cells to be changed, and you can also draw on the world with the mouse to fill empty loca&shy;tions with par&shy;ticles. This can be easier to do if you pause ani&shy;mation first. For even better preci&shy;sion, draw in Edit Mode, which pauses animation for you and also stabi&shy;lises the panning window (unless [Shift] is held down, in which case you can pan to wherever you wish to edit). Right-clicking on any of the draw func&shy;tions erases instead of drawing. Pausing and stepping will reveal much about the current rule set.</p>
+
+        <table class='life'  style='font-size:100px; line-height:20px' title='Kreechers making lines of different types'>
+          <tr>
+            <th>Figure 10</th>
+          </tr>
+          <tr>
+            <td>
+              <img src='kreechers2.png'>
+            </td>
+          </tr>
+        </table>
+
+        <p>The colors shown are assig&shy;ned accor&shy;ding to how many times a parti&shy; has had its loca&shy;tion swapped during each frame scan. Interes&shy;tingly this displays a lot of pat&shy;ter&shy;ning and also regu&shy;larity too. Looking at even the very first preset using this colori&shy;zation, I get the feeling that very many matrix sizes and rule sets are Turing complete, and it should be possible to create complex and fanci&shy;ful compu&shy;tations (starting with simple logic gates and moving up) much more quickly and easily than with Life. To this end I will shortly release a Pattern Editor - watch this space.</p>
+
+        <p>If you create anything with this or develop it further, please accredit my work when you do so, thanks! And feel free to brainstorm with me at <a href='mailto:robin@robinnixon.com'>robin@&shy;robinnixon&shy;.com</a>. Here is the <a href='https://github.com/RobinNixon/kreechers' target='_new'>Github Repository</a>.</p><br><br>
+
+        <div style='position:absolute; bottom:20px; right:17px; width:31.5%'>
+          <br>
+          <p style='text-align:center; color:#8f8;'><i>Designed for Desktop Computers. Initial<br>Public Release: v0.82 January 26th 2021</i></p>
+        </div>
+        <br><br>
+      </div>
+      <div id='mwin'></div>
+      <div id='dwin'></div>
+      <div id='cwin'></div>
+      <div id='iwin' onclick='quickGuide()'>
+        <h1 style='margin:0px 0px 20px; padding:0px'><span class='key'><center>Kreechers<sup><script>document.write(VERSION)</script></sup> &copy; 2021 <a style='color:#8f8' href='https://www.amazon.com/Robin-Nixon/e/B002K8U1WC' target='_new'>Robin Nixon</a> - Quick Reference Guide</center></h1>
+
+        <div id='sections' style='margin-bottom:-10px'>
+          <h2>General Keyboard Commands</h2>
+
+          <ul class='nobreak'>
+            <li><span class='key'>A</span>                     - <span class='key1'>A</span>pply the next preselected world + rules</li>
+            <li><span class='key'>C</span>                     - <span class='key1'>C</span>lear the world</li>
+            <li><span class='key'>D</span>                     - Hide/show the info <span class='key1'>D</span>isplay</li>
+            <li><span class='key'>F</span>                     - Draw a random <span class='key1'>F</span>illed rectangle</li>
+            <li><span class='key'>G</span>                     - Hide or show the <span class='key1'>G</span>uide window</li>
+            <li><span class='key'>H</span>                     - Toggle between <span class='key1'>H</span>ard &amp; soft borders</li>
+            <li><span class='key'>K</span>                     - Copy world + rules to the <span class='key1'>K</span>eyboard buffer</li>
+            <li><span class='key'>L</span>                     - Draw a random <span class='key1'>L</span>ine</li>
+            <li><span class='key'>N</span>                     - Choose a <span class='key1'>N</span>ew set of random rules</li>
+            <li><span class='key'>O</span>                     - Draw a random <span class='key1'>O</span>pen rectangle</li>
+            <li><span class='key'>P</span>                     - <span class='key1'>P</span>ause or restart animation</li>
+            <li><span class='key'>S</span>                     - When pausing <span class='key1'>S</span>tep one frame</li>
+            <li><span class='key'>T</span>                     - <span class='key1'>T</span>oggle between color &amp; monochrome</li>
+            <li><span class='key'>W</span>                     - <span class='key1'>W</span>rite 'kreechers' on the world</li>
+            <li><span class='key'>&lt; &gt;</span>             - Increase or decrease resolution</li>
+          </ul>
+
+          <h2>General Mouse Actions</h2>
+          <ul class='nobreak'>
+            <li><span class='key'>Mouse move</span>            - Relocate the cursor</li>
+            <li><span class='key'>Scroll wheel</span>          - Zoom in and out</li>
+            <li><span class='key'>Left click</span>            - Create a particle - Enters temporary Edit Mode</li>
+            <li><span class='key'>Right click</span>           - Delete a particle - Enters temporary Edit Mode</li>
+          </ul>
+
+          <div class='nobreak'><h2>Keyboard + Mouse Buttons</h2>
+          <ul>
+            <li><span class='key'>Ctrl + Left</span>           - Draw a line</li>
+            <li><span class='key'>Ctrl + Right</span>          - Draw an open rectangle</li>
+            <li><span class='key'>Ctrl + Both</span>           - Draw a filled rectangle</li>
+            <li><span class='key'>Alt + Left</span>            - Create a rectangular selection</li>
+            <li><span class='key'>Alt + Right</span>           - Create a square selection</li>
+            <li><span class='key'>Shift + Left</span>          - Enter Edit mode</li>
+          </ul></div>
+
+          <h2>Edit Mode Controls</h2>
+          <ul class='nobreak'>
+            <li><span class='key'>Shift + Mouse + Wheel</span> - Pan &amp; zoom</li>
+            <li><span class='key'>Esc</span>                   - Exit Edit Mode</li>
+            <li><i>All other editing commands apply</i></li>
+          </ul>
+
+          <h2>Keyboard Selection Commands</h2>
+          <ul class='nobreak'>
+            <li><span class='key'>Alt + B</span>               - Pop up the clip<span class='key1'>B</span>oard window</li>
+            <li><span class='key'>Alt + F</span>               - <span class='key1'>F</span>lip the selection top to bottom</li>
+            <li><span class='key'>Alt + M</span>               - <span class='key1'>M</span>irror the selection left to right</li>
+            <li><span class='key'>Alt + R</span>               - <span class='key1'>R</span>otate the selection 90&deg; with scaling</li>
+            <li><span class='key'>Ctrl + C</span>              - <span class='key1'>C</span>opy the selection</li>
+            <li><span class='key'>Ctrl + X</span>              - Cut the selection</li>
+            <li><span class='key'>Ctrl + V</span>              - Paste the selection at the mouse pointer</li>
+          </ul>
+
+          <br><div class='nobreak'><h2>Clipboard Viewer</h2>
+          <ul>
+            <li><span class='key'>Left click</span>            - Toggle cell values</li>
+            <li><span class='key'>Esc</span>                   - Exit Clipboard viewer</li>
+          </ul></div>
+
+          <h2><a href='https://www.amazon.com/Robin-Nixon/e/B002K8U1WC' target='_new'>Nixon</a>'s Kreechers</h2>
+          <ul class='nobreak'>
+            <li><span class='key'>E</span>                     - <span class='key1'>E</span>nable or disable multiple passes</li>
+            <li><span class='key'>M</span>                     - Toggle <span class='key1'>M</span>utations every 15 seconds</li>
+            <li><span class='key'>T</span>                     - <span class='key1'>T</span>rack fast-moving, invisible particles</li>
+            <li><span class='key'>U</span>                     - <span class='key1'>U</span>se rules on only a 2 &times; 2 section</li>
+            <li><span class='key'>1-9</span>                   - Select the number of rule columns</li>
+            <li><span class='key'>Shift + 1-9</span>           - Select the number of rule rows</li>
+          </ul>
+
+          <h2><a href='https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life' target='_new'>Conway</a>'s Game of Life Variations</h2>
+          <ul class='nobreak'>
+            <li><span class='key'>Green Checkboxes</span>      - Neighbors needed for creation</li>
+            <li><span class='key'>Red Checkboxes</span>        - Neighbors needed for deletion</li>
+          </ul>
+
+          <h2><a href='https://mathworld.wolfram.com/ElementaryCellularAutomaton.html' target='_new'>Wolfram</a>'s 256 Rules</h2>
+          <ul class='nobreak'>
+            <li><span class='key'>[ ]</span>                   - Select the previous or next rule</li>
+            <li><span class='key'>V</span>                     - Change the <span class='key1'>V</span>ertical offset</li>
+          </ul>
+        </div>
+        <center><i style='color:#8f8'>Currently suitable only for desk and laptop computers</i></center>
+      </div>
+      <img id='editcursor' src='editcursor.png'></img>
+    </div>
+    <script src='presets.js'></script>
+    <script src='kreechers.js'></script>
+  </body>
+</html>

@@ -4,7 +4,27 @@ body {
   font-family       : monospace;
   overflow-x        : hidden;
 }
-table {
+select {
+  text-align        : center;
+  text-align-last   : center;
+  background        : #008;
+  color             : #fff;
+  border            : 1px solid #888;
+  border-top        : 2px solid #888;
+  border-radius     : 5px;
+  box-shadow        : 2px 2px #444;
+  height            : 24px;
+  user-select       : none;
+  width             : 100%;
+-moz-text-align-last: center;
+}
+select:focus {
+  outline           : none;
+}
+option {
+  color             : #0f0;
+}
+#output1 table {
   border            : 1px solid #48f;
 }
 hr {
@@ -13,7 +33,7 @@ hr {
 input[type=range]::-webkit-slider-runnable-track {
   width             : 100%;
   height            : 10px;
-  background        : #3ccc;
+  background        : #ccc;
   border-radius     : 10px;
 }
 input[type=range]::-webkit-slider-thumb {
@@ -41,7 +61,7 @@ input[type='checkbox'] {
 .checknum {
   font-family       : "Courier New", Monospace;
   font-size         : 13px;
-  width             : 16.2px;
+  width             : 16.1px;
   display           : inline-block;
 }
 .switch {
@@ -120,10 +140,11 @@ button:focus {
   margin-bottom     : 20px;
   margin-left       : auto;
   margin-right      : auto;
-  opacity           : 0%;
+  opacity           : 0;
   transition        : 2s;
 }
-#output1 {
+#mwin {
+  display           : block;
   cursor            : url(cursor32.png), auto;
   position          : absolute;
   top               : 0px;
@@ -132,10 +153,9 @@ button:focus {
   margin            : 10px;
   line-height       : 16px;
   font-size         : 24px;
-  z-index           : 1000;
-  
 }
-#output2 {
+#dwin {
+  display           : block;
   cursor            : url(cursor32.png), auto;
   position          : absolute;
   top               : 0px;
@@ -144,10 +164,80 @@ button:focus {
   font-family       : Helvetica;
   font-size         : 12px;
   margin            : 5px;
-  z-index           : 1000;
+}
+#cwin {
+  display           : block;
+  cursor            : url(cursor32.png), auto;
+  font-size         : 12px;
+  border            : 1px solid white;
+  position          : absolute;
+  top               : 15px;
+  left              : 20px;
+  max-height        : 650px;
+  background        : #444;
+  color             : #fff;
+  font-family       : Helvetica;
+  padding           : 10px;
+  user-select       : none;
+  overflow-y        : auto;
+}
+.board {
+  background        : #111;
+  border            : 1px solid #fff;
+  margin            : 10px;
+  padding           : 10px;
+}
+.clip {
+  font-size         : 10px;
+  width             : 7px;
+  height            : 6px;
+  line-height       : 6px;
+  letter-spacing    : -2px;
+  margin            : 0;
+  padding           : 0;
+  border            : 0;
+}
+.selection {
+  padding           : 6px 5px 6px 4px;
+  border            : 1px solid #000;
+  background        : #686;
+}
+.empty {
+  color             : #111;
 }
 .cell {
   color             : #fff;
+}
+#iwin {
+  position          : absolute;
+  top               : -1000px;
+  cursor            : url(cursor32.png), auto;
+  user-select       : none;
+  opacity           : 0;
+  transition        : opacity 0.5s ease, top 0.5s ease;
+  border            : 1px solid white;
+  margin            : 10px;
+  padding           : 10px;
+  background        : #343;
+  font-size         : 14px;
+  color             : #fff;
+  font-family       : Helvetica;
+}
+#sections {
+  column-count      : 3;
+  column-gap        : 0px;
+}
+#instructions h2 {
+  color             :#0af;
+}
+#instructions a {
+  color             : #0af;
+}
+#instructions a:hover {
+  text-decoration   : underline;
+}
+.nobreak {
+  break-inside      : avoid-column;
 }
 .about {
   column-count      : 3;
@@ -160,6 +250,12 @@ button:focus {
 }
 .keys {
   color             : #fcf;
+}
+.key {
+  color             : #8f8;
+}
+.key1 {
+  color             : #8cf;
 }
 a, a:link, a:visited, a:active {
   color             : #8f8;
@@ -226,7 +322,6 @@ h4 {
 #editcursor {
   position          : absolute;
   display           : none;
-  z-index           : 1001;
 }
 [data-title]:hover:after {
     opacity         : 1;
@@ -246,7 +341,7 @@ h4 {
     box-shadow      : 1px 1px 3px #222;
     opacity         : 0;
     border          : 1px solid #fff;
-    z-index         : 1001;
+    z-index         : 1;
     visibility      : hidden;
 }
 [data-title] {
